@@ -76,7 +76,7 @@ SUPABASE_KEY=sb_publishable_Uau4leBbn8gHPo_acRwCTQ_Oq296jhM
 TELEGRAM_TOKEN=8893464249:AAFhp-jmadAfKHrYfM56EzWyLN2d9_iaMm4
 TELEGRAM_GROUP_ID=-1003981401195
 
-APP_FRONTEND_URL=http://localhost:5173
+APP_FRONTEND_URL=https://sto-telkom.vercel.app
 ```
 
 ---
