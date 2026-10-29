@@ -127,7 +127,7 @@ exports.createTugas = async (req, res) => {
       }]);
     }
 
-    const baseUrl = process.env.APP_FRONTEND_URL || 'http://localhost:5173';
+    const baseUrl = (process.env.APP_FRONTEND_URL || 'https://sto-telkom.vercel.app').replace(/\/+$/, '');
     magicUrl = `${baseUrl}/tiket/${data.id}`;
 
     const odp = odp_kode || (parsedOdpId ? `ODP-ID-${parsedOdpId}` : 'ODP-PYK-01/04');
@@ -152,43 +152,47 @@ exports.createTugas = async (req, res) => {
 
     if (!parsedTeknisiId) {
       // 1. ALUR REAL OPEN POOL: Tiket terbuka untuk siapapun teknisi dalam grup Telegram
-      // TIDAK menyertakan nama teknisi karena belum ada yang mengambil
       pesanTiket = [
-        `🚨 <b>TIKET GANGGUAN / PEKERJAAN BARU</b>`,
+        `🚨 <b>[TELKOM AKSES — NOC DISPATCH STO PAYAKUMBUH]</b>`,
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
-        `📋 <b>Nomor Tiket:</b> #${data.id}`,
-        `🔌 <b>ODP:</b> <code>${telegramService.esc(odp)}</code>`,
-        `📍 <b>Lokasi:</b> ${telegramService.esc(lokasiText)}`,
-        `💼 <b>Jenis:</b> ${telegramService.esc(jenis)}`,
+        `⚡ <b>WORK ORDER / TIKET GANGGUAN BARU</b>`,
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+        `📋 <b>No. Tiket:</b> #${data.id}`,
+        `🔌 <b>Titik ODP:</b> <code>${telegramService.esc(odp)}</code>`,
+        `📍 <b>Lokasi / Sektor:</b> ${telegramService.esc(lokasiText)}`,
+        `💼 <b>Klasifikasi Pekerjaan:</b> ${telegramService.esc(jenis)}`,
         pelanggan_nama ? `👤 <b>Pelanggan:</b> ${telegramService.esc(pelanggan_nama)}` : null,
         pelanggan_telp ? `📞 <b>Kontak:</b> ${telegramService.esc(pelanggan_telp)}` : null,
-        `📊 <b>Status:</b> 📢 Terbuka untuk Diambil (Open Pool)`,
+        note ? `📝 <b>Instruksi NOC:</b> ${telegramService.esc(note)}` : null,
+        `⏱️ <b>Target SLA:</b> &lt; 3 Jam (Prioritas Utama)`,
+        `📊 <b>Status Dispatch:</b> 📢 <code>OPEN POOL (Menunggu Klaim Teknisi)</code>`,
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
-        `⚡ <i>Silakan teknisi lapangan klik tombol di bawah untuk mengambil tiket:</i>`,
-        `👉 <a href="${magicUrl}">Buka Tiket via Web</a>`
+        `⚡ <i>Siapapun teknisi siaga di grup silakan klik tombol di bawah untuk mengklaim tiket ini:</i>`,
+        `👉 <a href="${magicUrl}">Buka Detail Tiket Web</a>`
       ].filter(Boolean).join('\n');
 
       inlineKeyboard = {
         inline_keyboard: [
           [
-            magicUrl && magicUrl.startsWith('https://')
-              ? { text: '🔘 AMBIL TIKET SEKARANG', url: magicUrl }
-              : { text: '🔘 AMBIL TIKET SEKARANG', callback_data: `claim_${data.id}` }
+            { text: '🔘 AMBIL TIKET SEKARANG', callback_data: `claim_${data.id}` }
+          ],
+          [
+            { text: '🌐 BUKA DETAIL TIKET', url: magicUrl }
           ]
         ]
       };
     } else {
       // 2. ALUR PENUGASAN LANGSUNG: Pimpinan menunjuk teknisi spesifik
       pesanTiket = [
-        `📌 <b>PENUGASAN TIKET PEKERJAAN</b>`,
+        `📌 <b>[TELKOM AKSES — PENUGASAN TIKET PEKERJAAN]</b>`,
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
-        `📋 <b>Nomor Tiket:</b> #${data.id}`,
-        `🔌 <b>ODP:</b> <code>${telegramService.esc(odp)}</code>`,
+        `📋 <b>No. Tiket:</b> #${data.id}`,
+        `🔌 <b>Titik ODP:</b> <code>${telegramService.esc(odp)}</code>`,
         `📍 <b>Lokasi:</b> ${telegramService.esc(lokasiText)}`,
-        `💼 <b>Jenis:</b> ${telegramService.esc(jenis)}`,
+        `💼 <b>Klasifikasi Pekerjaan:</b> ${telegramService.esc(jenis)}`,
         pelanggan_nama ? `👤 <b>Pelanggan:</b> ${telegramService.esc(pelanggan_nama)}` : null,
         `👷 <b>Teknisi Ditugaskan:</b> ${telegramService.esc(techName || 'Teknisi Lapangan')}`,
-        `📊 <b>Status:</b> Menunggu Pengerjaan`,
+        `📊 <b>Status Dispatch:</b> <code>ASSIGNED (Menunggu Pengerjaan)</code>`,
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
         `👉 <a href="${magicUrl}">Buka Detail Tiket</a>`
       ].filter(Boolean).join('\n');
@@ -196,9 +200,7 @@ exports.createTugas = async (req, res) => {
       inlineKeyboard = {
         inline_keyboard: [
           [
-            magicUrl && magicUrl.startsWith('https://')
-              ? { text: '🔍 BUKA TIKET PEKERJAAN', url: magicUrl }
-              : { text: '🔍 BUKA TIKET PEKERJAAN', callback_data: `view_${data.id}` }
+            { text: '🔍 BUKA DETAIL TIKET', url: magicUrl }
           ]
         ]
       };
@@ -325,6 +327,57 @@ exports.claimTugas = async (req, res) => {
 
   if (error) {
     return errorResponse(res, 500, 'Gagal mengklaim tugas', error.message);
+  }
+
+  // Dual Broadcast update klaim ke Telegram Grup & instruksikan teknisi ke Gudang STO
+  try {
+    let techName = 'Teknisi Lapangan';
+    const { data: uData } = await supabase
+      .from('users')
+      .select('nama_lengkap')
+      .eq('id', parsedTeknisiId)
+      .single();
+    if (uData && uData.nama_lengkap) techName = uData.nama_lengkap;
+
+    const baseUrl = (process.env.APP_FRONTEND_URL || 'https://sto-telkom.vercel.app').replace(/\/+$/, '');
+    const magicLink = `${baseUrl}/tiket/${parsedId}`;
+    const odpKode = existingTugas.odp_kode || 'ODP-PYK-FA/001';
+    const lokasiText = existingTugas.lokasi || 'Payakumbuh';
+    const jenisText = existingTugas.jenis_kerja || 'Perbaikan Lapangan';
+
+    const broadcastClaim = `
+📢 <b>[TELKOM AKSES — DISPATCH NOC STO PAYAKUMBUH]</b>
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚡ <b>UPDATE DISPATCH: TIKET TELAH DIKLAIM TEKNISI</b>
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 <b>No. Tiket:</b> #${parsedId}
+👷 <b>Teknisi Lapangan:</b> <b>${telegramService.esc(techName)}</b>
+🔌 <b>Titik ODP:</b> <code>${telegramService.esc(odpKode)}</code>
+📍 <b>Lokasi / Sektor:</b> ${telegramService.esc(lokasiText)}
+💼 <b>Pekerjaan:</b> ${telegramService.esc(jenisText)}
+📊 <b>Status Dispatch:</b> <code>IN-PROGRESS (Sedang Dikerjakan)</code>
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📦 <b>SOP TAHAP 2 — LOGISTIK MATERIAL GUDANG:</b>
+Kepada rekan teknisi <b>${telegramService.esc(techName)}</b>, silakan segera menuju ke <b>Gudang STO Telkom Payakumbuh</b> untuk serah terima & pengambilan material kerja (Kabel Dropcore, Modem ONT, Roset Optik, & Aksesoris).
+
+👉 <i>Buka tautan di bawah untuk konfirmasi permintaan material ke gudang:</i>
+<a href="${magicLink}">${magicLink}</a>
+    `.trim();
+
+    await telegramService.kirimKeGrup(broadcastClaim, {
+      reply_markup: {
+        inline_keyboard: [
+          [
+            {
+              text: '📦 AMBIL MATERIAL DI GUDANG',
+              url: magicLink
+            }
+          ]
+        ]
+      }
+    });
+  } catch (tgClaimErr) {
+    console.warn('[claimTugas] Telegram broadcast notice:', tgClaimErr.message);
   }
 
   return successResponse(res, 200, 'Tugas berhasil diambil oleh teknisi', data, { tugas: data });
