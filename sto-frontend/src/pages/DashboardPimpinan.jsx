@@ -103,7 +103,7 @@ function DashboardPimpinan() {
   ).length;
 
   return (
-    <div className={`min-h-screen flex ${
+    <div className={`min-h-screen flex flex-col lg:flex-row ${
       isDark ? 'bg-[#0a0f1d] text-white' : 'bg-slate-50 text-slate-900'
     } transition-colors duration-300`}>
       

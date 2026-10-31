@@ -79,7 +79,7 @@ export default function AuditReportPage() {
   const totalMaterialsUsed = enrichedTasks.reduce((acc, t) => acc + t.materialsUsed.length, 0);
 
   return (
-    <div className={`min-h-screen flex ${isDark ? 'bg-[#0a0f1d] text-slate-100' : 'bg-slate-50 text-slate-800'} transition-colors duration-300`}>
+    <div className={`min-h-screen flex flex-col lg:flex-row ${isDark ? 'bg-[#0a0f1d] text-slate-100' : 'bg-slate-50 text-slate-800'} transition-colors duration-300`}>
       {/* Left Sidebar */}
       <div className="no-print">
         <ModernSidebar activeTab="laporan-kerja" />
