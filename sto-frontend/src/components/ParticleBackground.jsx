@@ -77,7 +77,7 @@ export default function ParticleBackground({ activeColor = 'burgundy', onColorCh
     window.addEventListener('resize', handleResize);
 
     // Particle nodes setup
-    const particleCount = Math.min(width > 768 ? 75 : 40, 100);
+    const particleCount = Math.min(width > 768 ? 36 : 20, 50);
     const particles = [];
     const colorConfig = PARTICLE_THEMES[selectedColor] || PARTICLE_THEMES.burgundy;
 
@@ -125,8 +125,6 @@ export default function ParticleBackground({ activeColor = 'burgundy', onColorCh
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
         ctx.fillStyle = colorConfig.dotColor;
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = colorConfig.glow;
         ctx.fill();
 
         // Connect particles within distance

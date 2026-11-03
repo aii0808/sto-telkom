@@ -7,7 +7,7 @@
  * 1. Pekerjaan lapangan telah selesai dikerjakan dengan kualitas redaman teruji.
  * 2. Perangkat hardware (Modem ONT dengan Serial Number terdata) telah terpasang di rumah pelanggan.
  * 3. Rekonsiliasi material membuktikan kabel Dropcore dan material lain benar-benar
- *    "TERPASANG DI PELANGGAN (CONSUMED)" dan bukan hilang tanpa jejak.
+ *    "TERPASANG DI PELANGGAN" dan bukan hilang tanpa jejak.
  * 4. Dapat dicetak langsung (Print/PDF) untuk keperluan arsip administrasi resmi perusahaan.
  * ============================================================================
  */
@@ -49,7 +49,7 @@ export default function ModalBASTP({ task, onClose }) {
         jumlah_terpakai: 120,
         jumlah_sisa: 30,
         satuan: 'meter',
-        status: 'TERPASANG DI PELANGGAN (CONSUMED)'
+        status: 'TERPASANG DI PELANGGAN'
       },
       {
         nama_barang: 'Modem ONT GPON Wi-Fi (ZTE F609)',
@@ -58,7 +58,7 @@ export default function ModalBASTP({ task, onClose }) {
         jumlah_sisa: 0,
         satuan: 'unit',
         sn: task.sn_ont || 'ZTEGC8B90112',
-        status: 'TERPASANG DI PELANGGAN (CONSUMED)'
+        status: 'TERPASANG DI PELANGGAN'
       }
     ]
   };
@@ -219,7 +219,7 @@ export default function ModalBASTP({ task, onClose }) {
                     <th className="py-2 px-3 font-bold">No</th>
                     <th className="py-2 px-3 font-bold">Nama Barang / Material</th>
                     <th className="py-2 px-3 font-bold text-center">Diambil</th>
-                    <th className="py-2 px-3 font-bold text-center text-emerald-500">Terpasang (Consumed)</th>
+                    <th className="py-2 px-3 font-bold text-center text-emerald-500">Terpasang di Pelanggan</th>
                     <th className="py-2 px-3 font-bold text-center text-amber-500">Sisa Retur</th>
                     <th className="py-2 px-3 font-bold text-right">Status Inventaris</th>
                   </tr>
@@ -257,7 +257,7 @@ export default function ModalBASTP({ task, onClose }) {
             </div>
 
             <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[11px]">
-              <strong>Keterangan Audit Material:</strong> Material yang tercatat pada kolom <em>Terpasang (Consumed)</em> secara permanen telah menjadi instalasi CPE di rumah pelanggan. Material sisa telah diverifikasi untuk retur ke gudang logistik.
+              <strong>Keterangan Audit Material:</strong> Material yang tercatat pada kolom <em>Terpasang di Pelanggan</em> secara permanen telah menjadi instalasi CPE di rumah pelanggan. Material sisa telah diverifikasi untuk retur ke gudang logistik.
             </div>
           </div>
 

@@ -58,7 +58,7 @@ export default function Login({ onTriggerSplash }) {
         const response = await api.post('/auth/login', {
           email: email.toLowerCase().trim(),
           password: password.trim()
-        });
+        }, { timeout: 2500 });
 
         if (response.data?.success && (response.data?.data?.user || response.data?.user)) {
           loggedInUser = response.data?.data?.user || response.data?.user;

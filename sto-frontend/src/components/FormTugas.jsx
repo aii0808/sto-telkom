@@ -71,24 +71,10 @@ function FormTugas() {
     };
 
     try {
-      // 1. Eksekusi Siar Tiket via Backend Node.js
-      let apiData = null;
-      try {
-        const resApi = await api.post('/tugas', taskPayload);
-        if (resApi.data?.data) {
-          apiData = resApi.data.data;
-        }
-      } catch (backendErr) {
-        console.warn('[FormTugas] Backend notice:', backendErr.message);
-      }
+      // Eksekusi Sekali: createTugas menangani sinkronisasi backend, Telegram, dan Supabase secara cepat
+      const createdTask = await createTugas(taskPayload);
 
-      // 2. Sinkronisasi ke AppContext state dan Supabase Client
-      const createdTask = await createTugas({
-        ...taskPayload,
-        id: apiData?.id
-      });
-
-      setPesan(`Tiket #${createdTask.id} berhasil disiarkan ke Grup Telegram! Siapapun teknisi di grup dapat langsung menekan tombol Ambil Tiket.`);
+      setPesan(`Tiket #${createdTask.id} berhasil disiarkan ke Grup Telegram! Siapapun teknisi siaga di grup dapat langsung menekan tombol Ambil Tiket.`);
       showToast('Tiket Berhasil Disimpan & Disiarkan ke Grup Telegram!', 'success');
 
       // Reset form ringan

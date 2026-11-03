@@ -52,31 +52,27 @@ export default function ModernSidebar({ activeTab, onTabChange }) {
         return [
           {
             key: 'tiket',
-            label: 'Ambil Tiket / Pekerjaan',
+            label: 'Daftar Tiket & Pekerjaan',
             icon: ClipboardList,
             badge: assignedTechTickets > 0 ? assignedTechTickets : null,
             badgeColor: 'bg-blue-500 text-white'
           },
           {
             key: 'surat-permohonan',
-            label: 'Surat Permohonan Barang',
+            label: 'Kebutuhan Material',
             icon: FilePlus2
           },
-          {
-            key: 'cetak-surat',
-            label: 'Cetak Fisik Surat Permohonan',
-            icon: Printer
-          },
+
           {
             key: 'status-approval',
-            label: 'Status Persetujuan Pimpinan',
+            label: 'Persetujuan & Gudang',
             icon: Clock,
             badge: approvedForReleaseCount > 0 ? 'Siap Ambil' : null,
             badgeColor: 'bg-emerald-500 text-white'
           },
           {
             key: 'pengerjaan',
-            label: 'Pengerjaan & Bukti Selesai',
+            label: 'Pemasangan & BASTP Digital',
             icon: Camera
           }
         ];

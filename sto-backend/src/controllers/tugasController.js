@@ -206,23 +206,25 @@ exports.createTugas = async (req, res) => {
       };
     }
 
-    const tgResult = await telegramService.kirimKeGrup(pesanTiket, {
+    // FASE DUAL BROADCAST: Siarkan ke Telegram secara asinkron (non-blocking) agar response API super cepat (<200ms)
+    telegramService.kirimKeGrup(pesanTiket, {
       reply_markup: inlineKeyboard
+    }).then(async (tgResult) => {
+      if (tgResult && tgResult.result?.message_id) {
+        try {
+          await supabase.from('tugas').update({
+            telegram_message_id: String(tgResult.result.message_id)
+          }).eq('id', data.id);
+        } catch (_) { /* fallback */ }
+      }
+    }).catch((tgErr) => {
+      console.warn('[Telegram Dispatch Notice]', tgErr.message);
     });
-
-    // Simpan telegram_message_id jika berhasil
-    if (tgResult && tgResult.result?.message_id) {
-      try {
-        await supabase.from('tugas').update({
-          telegram_message_id: String(tgResult.result.message_id)
-        }).eq('id', data.id);
-      } catch { /* fallback */ }
-    }
   } catch (tgErr) {
     console.warn('[Telegram Dual Broadcast Notice]', tgErr.message);
   }
 
-  return successResponse(res, 201, 'Tugas berhasil disimpan ke database & disiarkan serentak ke Telegram!', {
+  return successResponse(res, 201, 'Tugas berhasil diterbitkan & disiarkan ke Telegram!', {
     ...data,
     magic_url: magicUrl,
     magic_token: token

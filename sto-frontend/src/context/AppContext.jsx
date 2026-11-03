@@ -144,7 +144,7 @@ export function AppProvider({ children }) {
   }, [odp]);
 
   // Robust Fetch & Sync from Supabase with Local Fallback
-  const fetchRealData = useCallback(async () => {
+  const fetchRealData = useCallback(async (isSilent = false) => {
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       setSyncStatus('offline');
       return;
@@ -155,7 +155,7 @@ export function AppProvider({ children }) {
       return;
     }
 
-    setSyncStatus('syncing');
+    if (!isSilent) setSyncStatus('syncing');
 
     try {
       const [
@@ -252,23 +252,82 @@ export function AppProvider({ children }) {
 
     if (!isSupabaseConfigured()) return;
 
-    // Real-time Subscription Channel for Live Tracking GPS & Tasks
+    // Interval Sinkronisasi Background Otomatis (Setiap 10 Detik)
+    const syncInterval = setInterval(() => {
+      fetchRealData(true);
+    }, 10000);
+
+    // Saluran Real-Time Supabase Lintas Seluruh Operasional (Tugas, Permohonan, Barang)
     const channel = supabase
-      .channel('realtime_sto_live')
+      .channel('realtime_sto_live_operations')
+      // 1. Sinkronisasi Real-Time Tugas Baru & Status
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'tugas' },
         (payload) => {
           if (payload.eventType === 'INSERT') {
-            setTugas((prev) => [payload.new, ...prev.filter(t => t.id !== payload.new.id)]);
+            const newTask = payload.new;
+            setTugas((prev) => [newTask, ...prev.filter(t => t.id !== newTask.id)]);
+            const user = JSON.parse(localStorage.getItem('user') || 'null');
+            if (user?.role === 'teknisi') {
+              showToast(`🚨 TIKET BARU: ${newTask.jenis_kerja || 'Pekerjaan'} di ${newTask.lokasi || 'Payakumbuh'}`, 'info');
+            }
           } else if (payload.eventType === 'UPDATE') {
-            setTugas((prev) => prev.map(t => t.id === payload.new.id ? { ...t, ...payload.new } : t));
+            const updated = payload.new;
+            setTugas((prev) => prev.map(t => t.id === updated.id ? { ...t, ...updated } : t));
+            const user = JSON.parse(localStorage.getItem('user') || 'null');
+            if (user?.role === 'pimpinan' && updated.status === 'Progress') {
+              showToast(`👷 Tiket #${updated.id} telah diklaim oleh teknisi!`, 'info');
+            } else if (updated.status === 'Done') {
+              showToast(`🎉 Tiket #${updated.id} telah selesai dikerjakan!`, 'success');
+            }
+          }
+        }
+      )
+      // 2. Sinkronisasi Real-Time Permohonan Material (Teknisi -> Pimpinan -> Gudang)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'permohonan' },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const newPerm = payload.new;
+            setPermohonan((prev) => [newPerm, ...prev.filter(p => p.id !== newPerm.id)]);
+            const user = JSON.parse(localStorage.getItem('user') || 'null');
+            if (user?.role === 'pimpinan') {
+              showToast(`📦 PERMOHONAN MATERIAL: Teknisi mengajukan barang untuk Tiket #${newPerm.tugas_id}. Silakan periksa!`, 'warning');
+            }
+          } else if (payload.eventType === 'UPDATE') {
+            const updated = payload.new;
+            setPermohonan((prev) => prev.map(p => p.id === updated.id ? { ...p, ...updated } : p));
+            const user = JSON.parse(localStorage.getItem('user') || 'null');
+            if (user?.role === 'gudang' && updated.status === 'Approved') {
+              showToast(`✅ Permohonan #${updated.id} disetujui Pimpinan! Siap diserahkan ke teknisi.`, 'success');
+            } else if (user?.role === 'teknisi' && updated.status === 'Approved') {
+              showToast(`✅ Permohonan material disetujui Pimpinan! Silakan ambil barang ke Gudang STO.`, 'success');
+            } else if (user?.role === 'teknisi' && updated.status === 'Released') {
+              showToast(`📦 Material telah diserahkan Gudang! Status: Dalam Perjalanan menuju lokasi.`, 'success');
+            }
+          }
+        }
+      )
+      // 3. Sinkronisasi Real-Time Stok Barang Gudang
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'barang' },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            setBarang((prev) => [...prev.filter(b => b.id !== payload.new.id), payload.new]);
+          } else if (payload.eventType === 'UPDATE') {
+            setBarang((prev) => prev.map(b => b.id === payload.new.id ? { ...b, ...payload.new } : b));
+          } else if (payload.eventType === 'DELETE') {
+            setBarang((prev) => prev.filter(b => b.id !== payload.old.id));
           }
         }
       )
       .subscribe();
 
     return () => {
+      clearInterval(syncInterval);
       supabase.removeChannel(channel);
     };
   }, [fetchRealData]);
@@ -311,13 +370,12 @@ export function AppProvider({ children }) {
     showToast("Anda telah keluar dari sistem.", "info");
   };
 
-  // SOP 1: Pimpinan membuat tiket tugas dan menyiarkan ke pool teknisi (Diumumkan Terbuka)
+    // SOP 1: Pimpinan membuat tiket tugas dan menyiarkan ke pool teknisi (Diumumkan Terbuka)
   const createTugas = async (taskData) => {
     const newId = tugas.length > 0 ? Math.max(...tugas.map(t => Number(t.id) || 0)) + 1 : 101;
     const now = new Date();
     const formattedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
-    // Target coordinates roughly around Payakumbuh Koto Nan IV area if not specified
     const offsetLat = (Math.random() - 0.5) * 0.02;
     const offsetLng = (Math.random() - 0.5) * 0.02;
     const target_lat = taskData.target_lat || (STO_COORDINATES.lat + offsetLat);
@@ -336,7 +394,7 @@ export function AppProvider({ children }) {
       lokasi: taskData.lokasi,
       pelanggan_nama: taskData.pelanggan_nama || "Pelanggan Telkom",
       pelanggan_telp: taskData.pelanggan_telp || "0812-xxxx-xxxx",
-      status: "Open",
+      status: "menunggu",
       keterangan: taskData.keterangan || "",
       target_lat,
       target_lng,
@@ -344,9 +402,12 @@ export function AppProvider({ children }) {
       waktu_buat: formattedDate
     };
 
+    // Optimistic UI Update seketika tanpa delay
     setTugas(prev => [newTask, ...prev]);
 
-    // 1. Sync ke Express Backend API (Memicu Broadcast Bot Telegram @sto_pyk_bot ke Teknisi)
+    let syncedId = null;
+
+    // 1. Eksekusi cepat via Backend API (sekaligus broadcast ke Telegram Bot @sto_pyk_bot)
     try {
       const resApi = await api.post('/tugas', {
         pimpinan_id: Number(newTask.pimpinan_id) || 1,
@@ -355,18 +416,21 @@ export function AppProvider({ children }) {
         lokasi: newTask.lokasi,
         pelanggan_nama: newTask.pelanggan_nama,
         pelanggan_telp: newTask.pelanggan_telp,
-        odp_kode: taskData.odp_kode || taskData.odp_id || 'ODP-PYK-FA/001',
+        odp_kode: taskData.odp_kode || 'ODP-PYK-FA/001',
+        odp_id: taskData.odp_id,
         keterangan: taskData.keterangan || ''
-      });
+      }, { timeout: 3500 });
+
       if (resApi.data?.data?.id) {
-        setTugas(prev => prev.map(t => t.id === newId ? { ...t, id: resApi.data.data.id } : t));
+        syncedId = resApi.data.data.id;
+        setTugas(prev => prev.map(t => t.id === newId ? { ...t, id: syncedId } : t));
       }
     } catch (apiErr) {
-      console.warn('[createTugas] Backend notice:', apiErr.message);
+      console.warn('[createTugas] Backend notice/timeout, fallback langsung ke Supabase:', apiErr.message);
     }
 
-    // 2. Sync to Supabase tugas table strictly according to schema:
-    if (isSupabaseConfigured()) {
+    // 2. Simpan ke Supabase jika backend offline
+    if (!syncedId && isSupabaseConfigured()) {
       try {
         let insertPayload = {
           pimpinan_id: Number(newTask.pimpinan_id) || 1,
@@ -382,32 +446,17 @@ export function AppProvider({ children }) {
         }
 
         let { data, error } = await supabase.from('tugas').insert([insertPayload]).select();
-
-        // If schema has NOT NULL constraint on teknisi_id, fallback to first available technician
-        if (error && error.message?.toLowerCase().includes('not-null')) {
-          const techFallback = users.find(u => u.role === 'teknisi')?.id || 2;
-          insertPayload.teknisi_id = techFallback;
-          const retryRes = await supabase.from('tugas').insert([insertPayload]).select();
-          data = retryRes.data;
-        }
-
-        // Fallback jika odp_id kolom bermasalah
-        if (error && error.message?.toLowerCase().includes('odp_id')) {
-          delete insertPayload.odp_id;
-          const retryRes = await supabase.from('tugas').insert([insertPayload]).select();
-          data = retryRes.data;
-        }
-
         if (data && data.length > 0) {
-          setTugas(prev => prev.map(t => t.id === newId ? { ...t, id: data[0].id } : t));
+          syncedId = data[0].id;
+          setTugas(prev => prev.map(t => t.id === newId ? { ...t, id: syncedId } : t));
         }
       } catch (err) {
         console.warn('Supabase create task notice:', err);
       }
     }
 
-    showToast(`Tiket #${newId} (${taskData.jenis_kerja}) berhasil disiarkan ke seluruh armada teknisi!`, "success");
-    return newTask;
+    showToast(`Tiket #${syncedId || newId} (${taskData.jenis_kerja}) berhasil diterbitkan!`, "success");
+    return { ...newTask, id: syncedId || newId };
   };
 
   // SOP 1.5: Teknisi mengklaim/mengambil tiket yang diumumkan (dengan validasi ketat & dual sync)
@@ -659,6 +708,19 @@ export function AppProvider({ children }) {
       }
       return p;
     }));
+
+    if (targetPermohonan?.tugas_id) {
+      setTugas(prev => prev.map(t => {
+        if (Number(t.id) === Number(targetPermohonan.tugas_id)) {
+          return {
+            ...t,
+            material_status: 'Dalam Perjalanan',
+            status_detail: 'Dalam Perjalanan (Menuju Lokasi Pelanggan)'
+          };
+        }
+        return t;
+      }));
+    }
 
     // 1. Sync ke backend Express API
     try {

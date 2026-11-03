@@ -146,7 +146,7 @@ function DashboardPimpinan() {
                 className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-lg shadow-rose-600/30 transition cursor-pointer active:scale-95 whitespace-nowrap"
               >
                 <PlusCircle className="w-4 h-4" />
-                <span>Buat Tiket Baru (SOP 1)</span>
+                <span>Buat Tiket Baru</span>
               </button>
             </div>
           </div>
@@ -584,7 +584,7 @@ function DashboardPimpinan() {
             <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800 mb-4">
               <h3 className="font-bold text-base flex items-center gap-2">
                 <PlusCircle className="w-5 h-5 text-rose-500" />
-                Buat & Siarkan Tiket Kerja (SOP 1)
+                Buat & Siarkan Tiket Kerja
               </h3>
               <button
                 onClick={() => setShowCreateTaskModal(false)}

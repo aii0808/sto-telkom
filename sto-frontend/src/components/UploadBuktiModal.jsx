@@ -439,7 +439,7 @@ export default function UploadBuktiModal({ tugasId, onClose, onSuccess }) {
                     </p>
                   </div>
                   <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">
-                    SOP Logistik Telkom
+                    Audit Material
                   </span>
                 </div>
 
@@ -450,8 +450,8 @@ export default function UploadBuktiModal({ tugasId, onClose, onSuccess }) {
                       <tr className={`border-b ${isDark ? 'border-slate-800 text-slate-400' : 'border-slate-200 text-slate-600'}`}>
                         <th className="py-2 px-2.5 font-bold">Material / Barang</th>
                         <th className="py-2 px-2.5 font-bold text-center">Diambil</th>
-                        <th className="py-2 px-2.5 font-bold text-center text-emerald-400">Terpasang (Consumed)</th>
-                        <th className="py-2 px-2.5 font-bold text-center text-amber-400">Sisa (Retur)</th>
+                        <th className="py-2 px-2.5 font-bold text-center text-emerald-400">Terpasang di Pelanggan</th>
+                        <th className="py-2 px-2.5 font-bold text-center text-amber-400">Sisa Kembali ke Gudang</th>
                         <th className="py-2 px-2.5 font-bold text-right">Status Akhir</th>
                       </tr>
                     </thead>

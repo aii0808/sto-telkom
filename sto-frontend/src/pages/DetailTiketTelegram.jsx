@@ -47,7 +47,7 @@ export default function DetailTiketTelegram() {
     showToast
   } = useApp();
 
-  // Pengecekan Sesi Login (Sesuai Syarat Sidang KP)
+  // Pengecekan Sesi Login
   const [isAuthChecking, setIsAuthChecking] = useState(true);
 
   useEffect(() => {
@@ -361,7 +361,7 @@ export default function DetailTiketTelegram() {
               </div>
             </div>
             <span className="text-[10px] font-bold uppercase px-2.5 py-0.5 rounded bg-slate-800 text-slate-300">
-              SOP 1.5 - 2
+              Tahap Material
             </span>
           </div>
 
@@ -510,7 +510,7 @@ export default function DetailTiketTelegram() {
                 ? 'bg-purple-500/20 text-purple-400 border-purple-500/30'
                 : 'bg-slate-800 text-slate-400 border-slate-700'
             }`}>
-              {isClosed ? 'ACTIVE (DI PELANGGAN)' : isOntBound ? 'IN-TRANSIT' : 'MENUNGGU GUDANG'}
+              {isClosed ? 'ACTIVE (DI PELANGGAN)' : isOntBound ? 'DALAM PERJALANAN' : 'MENUNGGU GUDANG'}
             </span>
           </div>
 
@@ -522,7 +522,7 @@ export default function DetailTiketTelegram() {
             <div className="flex items-center justify-between text-[11px]">
               <span className="text-slate-400">Status Fisik Perangkat:</span>
               <span className="text-slate-300">
-                {isClosed ? 'Terpasang Permanen di Rumah Pelanggan' : 'Dikeluarkan dari Rak Gudang STO (In-Transit)'}
+                {isClosed ? 'Terpasang Permanen di Rumah Pelanggan' : 'Dikeluarkan dari Rak Gudang STO (Dalam Perjalanan)'}
               </span>
             </div>
           </div>
@@ -541,7 +541,7 @@ export default function DetailTiketTelegram() {
               </div>
             </div>
             <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-slate-800 text-slate-300">
-              SOP 5
+              Check-In Lapangan
             </span>
           </div>
 

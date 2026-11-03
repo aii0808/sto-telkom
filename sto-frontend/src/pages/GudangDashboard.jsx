@@ -58,6 +58,7 @@ export default function GudangDashboard() {
   // Modals
   const [editingItem, setEditingItem] = useState(null);
   const [bastpModalTask, setBastpModalTask] = useState(null);
+  const [snOntInputs, setSnOntInputs] = useState({});
 
   // Form State for Add / Edit
   const [barangForm, setBarangForm] = useState({
@@ -153,8 +154,9 @@ export default function GudangDashboard() {
   };
 
   const handleRelease = (reqId) => {
-    releaseMaterial(reqId);
-    showToast('Barang berhasil dirilis & stok gudang otomatis terpotong!', 'success');
+    const sn = snOntInputs[reqId] || null;
+    releaseMaterial(reqId, sn);
+    showToast('Barang berhasil diserahkan ke teknisi! Status: Dalam Perjalanan.', 'success');
   };
 
   // Data Audit Lifecycle ONT (Di Gudang -> Di Perjalanan / In-Transit -> Terpasang / Active)
@@ -196,7 +198,7 @@ export default function GudangDashboard() {
             pelanggan_telp: rel.parentTask?.pelanggan_telp || '0812-xxxx-xxxx',
             lokasi: rel.parentTask?.lokasi || 'Koto Nan IV',
             odp_id: rel.parentTask?.odp_kode || 'ODP-PYK-FA/001',
-            redaman_dbm: 'Belum Diukur (In-Transit)',
+            redaman_dbm: 'Belum Diukur (Dalam Perjalanan)',
             bastp_no: 'Menunggu Closing',
             teknisi: rel.tech?.nama_lengkap || 'Teknisi STO',
             waktu: rel.waktu_rilis || 'Dibawa Teknisi'
@@ -434,7 +436,7 @@ export default function GudangDashboard() {
                   Menampilkan permohonan material yang telah disetujui Pimpinan. Klik <strong>Rilis Barang</strong> untuk melakukan serah terima fisik dan memotong stok gudang otomatis.
                 </p>
                 <span className="text-[10px] uppercase font-bold text-amber-500 bg-amber-500/10 px-2 py-1 rounded border border-amber-500/30">
-                  SOP Tahap 4
+                  Serah Terima Material
                 </span>
               </div>
 
@@ -496,6 +498,29 @@ export default function GudangDashboard() {
                         </div>
                       </div>
 
+                      {/* Input SN ONT Opsional jika terdapat item Modem / ONT */}
+                      {req.details.some(d => d.item?.nama_barang?.toLowerCase().includes('ont') || d.item?.nama_barang?.toLowerCase().includes('modem')) && (
+                        <div className="p-3 rounded-2xl bg-purple-950/20 border border-purple-500/30 space-y-2 text-xs">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-purple-400">Nomor Seri (SN) Modem ONT (Opsional):</span>
+                            <button
+                              type="button"
+                              onClick={() => setSnOntInputs(prev => ({ ...prev, [req.id]: 'ZTEGC8B' + Math.random().toString(16).substring(2, 7).toUpperCase() }))}
+                              className="text-[10px] text-purple-300 hover:underline font-bold"
+                            >
+                              Buat SN Otomatis
+                            </button>
+                          </div>
+                          <input
+                            type="text"
+                            placeholder="Scan barcode dus ONT atau ketik SN (misal: ZTEGC8B90112)"
+                            value={snOntInputs[req.id] || ''}
+                            onChange={e => setSnOntInputs(prev => ({ ...prev, [req.id]: e.target.value.toUpperCase() }))}
+                            className="w-full p-2.5 rounded-xl border border-purple-600/50 bg-slate-950 text-white font-mono text-xs uppercase"
+                          />
+                        </div>
+                      )}
+
                       {/* Release Button */}
                       <div className="pt-2">
                         <button
@@ -508,7 +533,7 @@ export default function GudangDashboard() {
                           }`}
                         >
                           <CheckCircle2 className="w-4 h-4" />
-                          <span>{req.canRelease ? 'Disetujui' : 'Stok Gudang Tidak Cukup'}</span>
+                          <span>{req.canRelease ? '📦 Serahkan Barang ke Teknisi' : 'Stok Gudang Tidak Cukup'}</span>
                         </button>
                       </div>
                     </div>
@@ -970,7 +995,7 @@ export default function GudangDashboard() {
                         Audit & Trasir Perangkat ONT (Optical Network Terminal) Lapangan
                       </h3>
                       <p className="text-[11px] text-slate-400">
-                        Pelacakan alur fisik ONT: Di Rak Gudang &rarr; Di Perjalanan (In-Transit) &rarr; Terpasang di Pelanggan (Validasi SN, Foto Bukti &amp; BASTP).
+                        Pelacakan alur fisik ONT: Di Rak Gudang &rarr; Dalam Perjalanan &rarr; Terpasang di Pelanggan (Validasi SN, Foto Bukti &amp; BASTP).
                       </p>
                     </div>
                   </div>
@@ -980,7 +1005,7 @@ export default function GudangDashboard() {
                       Gudang: {ontInventoryList.filter(o => o.status === 'Di Gudang').length} Unit
                     </span>
                     <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">
-                      In-Transit: {ontInventoryList.filter(o => o.status === 'Di Perjalanan').length} Unit
+                      Dalam Perjalanan: {ontInventoryList.filter(o => o.status === 'Di Perjalanan').length} Unit
                     </span>
                     <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                       Terpasang: {ontInventoryList.filter(o => o.status === 'Terpasang').length} Unit
@@ -1005,7 +1030,7 @@ export default function GudangDashboard() {
                     {[
                       { id: 'all', label: 'Semua Status' },
                       { id: 'Di Gudang', label: 'Di Gudang (Rak)' },
-                      { id: 'Di Perjalanan', label: 'In-Transit' },
+                      { id: 'Di Perjalanan', label: 'Dalam Perjalanan' },
                       { id: 'Terpasang', label: 'Terpasang' }
                     ].map(f => (
                       <button

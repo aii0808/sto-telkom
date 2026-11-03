@@ -12,6 +12,8 @@ import {
   MapPin,
   Package,
   Camera,
+  Eye,
+  Truck,
   Navigation,
   Radio,
   Clock,
@@ -325,61 +327,99 @@ export default function DashboardTeknisi() {
                           </div>
                         </div>
 
-                        {/* SOP Step Actions */}
-                        <div className="grid grid-cols-2 gap-2 pt-1">
-                          <button
-                            onClick={() => setModalTugasId(t.id)}
-                            className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow transition active:scale-95 cursor-pointer"
-                          >
-                            <Package className="w-3.5 h-3.5" />
-                            <span>1. Ajukan Material</span>
-                          </button>
+                        {/* Status Alur Pengerjaan Lapangan Realistis */}
+                        {(() => {
+                          const taskPerm = permohonan.find(p => Number(p.tugas_id) === Number(t.id));
+                          const isApproved = taskPerm?.status === 'Approved';
+                          const isReleased = taskPerm?.status === 'Released' || t.material_status === 'Dalam Perjalanan';
+                          const isPending = taskPerm && taskPerm.status === 'Pending';
+                          const isCheckedIn = !!t.checkin?.verified;
 
-                          <button
-                            onClick={() => setActiveMenu('cetak-surat')}
-                            className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs shadow transition active:scale-95 cursor-pointer"
-                            title="Opsional: Tidak wajib dicetak untuk melanjutkan pekerjaan"
-                          >
-                            <Printer className="w-3.5 h-3.5 text-slate-400" />
-                            <span>2. Cetak Fisik (Opsional)</span>
-                          </button>
+                          return (
+                            <div className="space-y-2.5 pt-1">
+                              {/* Indikator Status Tahapan Terkini */}
+                              {!taskPerm && (
+                                <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-500 text-xs font-semibold flex items-center gap-2">
+                                  <Package className="w-4 h-4 shrink-0" />
+                                  <span>Tahap 1: Kebutuhan material belum diajukan.</span>
+                                </div>
+                              )}
+                              {isPending && (
+                                <div className="p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-semibold flex items-center gap-2">
+                                  <Clock className="w-4 h-4 shrink-0 animate-spin" />
+                                  <span>Tahap 2: Menunggu persetujuan material dari Pimpinan STO.</span>
+                                </div>
+                              )}
+                              {isApproved && !isReleased && (
+                                <div className="p-2.5 rounded-xl bg-purple-500/15 border border-purple-500/30 text-purple-300 text-xs font-semibold flex items-center gap-2">
+                                  <CheckCircle2 className="w-4 h-4 shrink-0 text-purple-400" />
+                                  <span>Tahap 3: Disetujui Pimpinan! Segera ambil material di Gudang STO.</span>
+                                </div>
+                              )}
+                              {isReleased && !isCheckedIn && (
+                                <div className="p-2.5 rounded-xl bg-sky-500/15 border border-sky-500/30 text-sky-300 text-xs font-semibold flex items-center gap-2">
+                                  <Truck className="w-4 h-4 shrink-0 text-sky-400" />
+                                  <span>Tahap 4: Material diterima. Dalam Perjalanan menuju lokasi pelanggan.</span>
+                                </div>
+                              )}
+                              {isCheckedIn && (
+                                <div className="p-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-semibold flex items-center gap-2">
+                                  <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+                                  <span>Tahap 5: Sudah Check-In di lokasi. Siap closing & BASTP.</span>
+                                </div>
+                              )}
 
-                          {/* 3. Check-In di Lokasi Pelanggan (Mandatory) */}
-                          {t.checkin?.verified ? (
-                            <div className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold text-xs">
-                              <CheckCircle2 className="w-3.5 h-3.5" />
-                              <span>✓ Checked-In ({t.checkin?.time || 'Di Lokasi'})</span>
+                              {/* Tombol Aksi Utama Berdasarkan Tahapan */}
+                              <div>
+                                {!taskPerm && (
+                                  <button
+                                    onClick={() => setModalTugasId(t.id)}
+                                    className="w-full py-2.5 px-3 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow flex items-center justify-center gap-2 transition active:scale-95 cursor-pointer"
+                                  >
+                                    <Package className="w-4 h-4" />
+                                    <span>📦 Ajukan Kebutuhan Material ke Pimpinan</span>
+                                  </button>
+                                )}
+                                {isPending && (
+                                  <button
+                                    onClick={() => setModalTugasId(t.id)}
+                                    className="w-full py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs border border-slate-700 flex items-center justify-center gap-2 transition active:scale-95 cursor-pointer"
+                                  >
+                                    <Eye className="w-4 h-4" />
+                                    <span>Tinjau / Tambah Item Material</span>
+                                  </button>
+                                )}
+                                {isApproved && !isReleased && (
+                                  <button
+                                    onClick={() => showToast('Permohonan telah disetujui Pimpinan! Silakan temui Petugas Gudang STO Payakumbuh untuk serah terima barang.', 'info')}
+                                    className="w-full py-2.5 px-3 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow flex items-center justify-center gap-2 transition active:scale-95 cursor-pointer"
+                                  >
+                                    <Package className="w-4 h-4" />
+                                    <span>🏢 Ambil Barang ke Gudang STO</span>
+                                  </button>
+                                )}
+                                {isReleased && !isCheckedIn && (
+                                  <button
+                                    onClick={() => handleDoCheckIn(t)}
+                                    className="w-full py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow flex items-center justify-center gap-2 transition active:scale-95 cursor-pointer"
+                                  >
+                                    <MapPin className="w-4 h-4 text-amber-300 animate-pulse" />
+                                    <span>📍 Tiba di Lokasi Pelanggan (Check-In)</span>
+                                  </button>
+                                )}
+                                {isCheckedIn && (
+                                  <button
+                                    onClick={() => setUploadTugasId(t.id)}
+                                    className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow flex items-center justify-center gap-2 transition active:scale-95 cursor-pointer"
+                                  >
+                                    <Camera className="w-4 h-4" />
+                                    <span>✅ Selesaikan Pekerjaan & BASTP Digital</span>
+                                  </button>
+                                )}
+                              </div>
                             </div>
-                          ) : (
-                            <button
-                              onClick={() => handleDoCheckIn(t)}
-                              className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow transition active:scale-95 cursor-pointer"
-                            >
-                              <MapPin className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
-                              <span>3. Check-In di Lokasi</span>
-                            </button>
-                          )}
-
-                          {/* 4. Upload Bukti & Closing (Wajib Check-In dulu) */}
-                          {t.checkin?.verified ? (
-                            <button
-                              onClick={() => setUploadTugasId(t.id)}
-                              className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow transition active:scale-95 cursor-pointer"
-                            >
-                              <Camera className="w-3.5 h-3.5" />
-                              <span>4. Closing & BASTP</span>
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => showToast('Wajib tekan "Check-In di Lokasi" terlebih dahulu sebelum melakukan closing!', 'warning')}
-                              className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-800 text-slate-400 font-bold text-xs border border-slate-700 cursor-not-allowed opacity-80"
-                              title="Wajib Check-In di Lokasi terlebih dahulu"
-                            >
-                              <Lock className="w-3.5 h-3.5 text-amber-400" />
-                              <span>4. Closing (Wajib Check-In)</span>
-                            </button>
-                          )}
-                        </div>
+                          );
+                        })()}
                       </div>
                     ))}
                   </div>
@@ -617,7 +657,7 @@ export default function DashboardTeknisi() {
                       <Camera className="w-5 h-5" />
                     </span>
                     <h2 className={`text-base font-extrabold ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                      Prosedur Closing & Serah Terima Hasil Pekerjaan (SOP 6)
+                      Prosedur Penutupan & BASTP Hasil Pekerjaan
                     </h2>
                   </div>
                   <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
@@ -632,7 +672,7 @@ export default function DashboardTeknisi() {
               {/* Work Orders to Finish */}
               <div className="space-y-4">
                 <h2 className={`text-base font-extrabold ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                  Unggah Foto Bukti & Selesaikan Pekerjaan (SOP 6)
+                  Daftar Pekerjaan yang Sedang Ditangani
                 </h2>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
