@@ -33,7 +33,7 @@
  * ============================================================================
  */
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import supabase, { isSupabaseConfigured } from '../api/supabaseClient';
 import api from '../api/axiosInstance';
 import {
@@ -49,6 +49,22 @@ import {
 const AppContext = createContext();
 
 export function AppProvider({ children }) {
+  const stoChannelRef = useRef(null);
+
+  // Helper pengiriman sinyal broadcast peer-to-peer WebSocket via Supabase Realtime
+  const broadcastLiveSignal = useCallback((event, payload) => {
+    try {
+      if (stoChannelRef.current) {
+        stoChannelRef.current.send({
+          type: 'broadcast',
+          event,
+          payload
+        });
+      }
+    } catch (err) {
+      console.warn('[Realtime Broadcast] Gagal broadcast sinyal:', err);
+    }
+  }, []);
   // 1. Connectivity & Sync Status
   const [isOnline, setIsOnline] = useState(() => typeof navigator !== 'undefined' ? navigator.onLine : true);
   const [syncStatus, setSyncStatus] = useState('syncing'); // 'synced' | 'local' | 'syncing' | 'offline'
@@ -257,10 +273,73 @@ export function AppProvider({ children }) {
       fetchRealData(true);
     }, 10000);
 
-    // Saluran Real-Time Supabase Lintas Seluruh Operasional (Tugas, Permohonan, Barang)
+    // Saluran Real-Time Supabase WebSocket Lintas Seluruh Operasional (Broadcast & Database Sync)
     const channel = supabase
-      .channel('realtime_sto_live_operations')
-      // 1. Sinkronisasi Real-Time Tugas Baru & Status
+      .channel('realtime_sto_live_operations', {
+        config: { broadcast: { self: true, ack: true } }
+      })
+      // A. Supabase Realtime WebSocket Broadcast: Milidetik Sinyal Antar Perangkat ⚡
+      .on('broadcast', { event: 'tugas_baru' }, ({ payload }) => {
+        if (payload && payload.id) {
+          setTugas((prev) => [payload, ...prev.filter(t => t.id !== payload.id)]);
+          const curUser = JSON.parse(localStorage.getItem('user') || 'null');
+          if (curUser?.role === 'teknisi') {
+            showToast(`🚨 TIKET BARU DITERBITKAN: ${payload.jenis_kerja || 'Pekerjaan'} di ${payload.lokasi || 'Payakumbuh'}`, 'info');
+          }
+        }
+      })
+      .on('broadcast', { event: 'tugas_diklaim' }, ({ payload }) => {
+        if (payload && payload.tugas_id) {
+          setTugas((prev) => prev.map(t => Number(t.id) === Number(payload.tugas_id) ? {
+            ...t,
+            teknisi_id: payload.teknisi_id,
+            status: 'Progress'
+          } : t));
+          const curUser = JSON.parse(localStorage.getItem('user') || 'null');
+          if (curUser?.role === 'pimpinan') {
+            showToast(`👷 Tiket #${payload.tugas_id} telah diambil oleh ${payload.teknisi_nama || 'Teknisi'}!`, 'info');
+          }
+        }
+      })
+      .on('broadcast', { event: 'permohonan_baru' }, ({ payload }) => {
+        if (payload && payload.id) {
+          setPermohonan((prev) => [payload, ...prev.filter(p => p.id !== payload.id)]);
+          const curUser = JSON.parse(localStorage.getItem('user') || 'null');
+          if (curUser?.role === 'pimpinan') {
+            showToast(`📦 PERMOHONAN MATERIAL: Teknisi mengajukan barang untuk Tiket #${payload.tugas_id}. Silakan periksa!`, 'warning');
+          }
+        }
+      })
+      .on('broadcast', { event: 'permohonan_approved' }, ({ payload }) => {
+        if (payload && payload.id) {
+          setPermohonan((prev) => prev.map(p => Number(p.id) === Number(payload.id) ? { ...p, status: 'Approved' } : p));
+          const curUser = JSON.parse(localStorage.getItem('user') || 'null');
+          if (curUser?.role === 'gudang') {
+            showToast(`✅ Permohonan #${payload.id} disetujui Pimpinan! Siap diserahkan ke teknisi.`, 'success');
+          } else if (curUser?.role === 'teknisi') {
+            showToast(`✅ Permohonan material disetujui Pimpinan! Silakan ambil barang ke Gudang STO.`, 'success');
+          }
+        }
+      })
+      .on('broadcast', { event: 'material_released' }, ({ payload }) => {
+        if (payload && payload.id) {
+          setPermohonan((prev) => prev.map(p => Number(p.id) === Number(payload.id) ? { ...p, status: 'Released' } : p));
+          const curUser = JSON.parse(localStorage.getItem('user') || 'null');
+          if (curUser?.role === 'teknisi') {
+            showToast(`📦 Material telah diserahkan Gudang! Status: Dalam Perjalanan menuju lokasi.`, 'success');
+          }
+        }
+      })
+      .on('broadcast', { event: 'tugas_selesai' }, ({ payload }) => {
+        if (payload && payload.tugas_id) {
+          setTugas((prev) => prev.map(t => Number(t.id) === Number(payload.tugas_id) ? { ...t, status: 'Done' } : t));
+          const curUser = JSON.parse(localStorage.getItem('user') || 'null');
+          if (curUser?.role === 'pimpinan') {
+            showToast(`🎉 Tiket #${payload.tugas_id} telah selesai dikerjakan & BASTP diterbitkan!`, 'success');
+          }
+        }
+      })
+      // B. Database Replication Changes
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'tugas' },
@@ -268,23 +347,12 @@ export function AppProvider({ children }) {
           if (payload.eventType === 'INSERT') {
             const newTask = payload.new;
             setTugas((prev) => [newTask, ...prev.filter(t => t.id !== newTask.id)]);
-            const user = JSON.parse(localStorage.getItem('user') || 'null');
-            if (user?.role === 'teknisi') {
-              showToast(`🚨 TIKET BARU: ${newTask.jenis_kerja || 'Pekerjaan'} di ${newTask.lokasi || 'Payakumbuh'}`, 'info');
-            }
           } else if (payload.eventType === 'UPDATE') {
             const updated = payload.new;
             setTugas((prev) => prev.map(t => t.id === updated.id ? { ...t, ...updated } : t));
-            const user = JSON.parse(localStorage.getItem('user') || 'null');
-            if (user?.role === 'pimpinan' && updated.status === 'Progress') {
-              showToast(`👷 Tiket #${updated.id} telah diklaim oleh teknisi!`, 'info');
-            } else if (updated.status === 'Done') {
-              showToast(`🎉 Tiket #${updated.id} telah selesai dikerjakan!`, 'success');
-            }
           }
         }
       )
-      // 2. Sinkronisasi Real-Time Permohonan Material (Teknisi -> Pimpinan -> Gudang)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'permohonan' },
@@ -292,25 +360,12 @@ export function AppProvider({ children }) {
           if (payload.eventType === 'INSERT') {
             const newPerm = payload.new;
             setPermohonan((prev) => [newPerm, ...prev.filter(p => p.id !== newPerm.id)]);
-            const user = JSON.parse(localStorage.getItem('user') || 'null');
-            if (user?.role === 'pimpinan') {
-              showToast(`📦 PERMOHONAN MATERIAL: Teknisi mengajukan barang untuk Tiket #${newPerm.tugas_id}. Silakan periksa!`, 'warning');
-            }
           } else if (payload.eventType === 'UPDATE') {
             const updated = payload.new;
             setPermohonan((prev) => prev.map(p => p.id === updated.id ? { ...p, ...updated } : p));
-            const user = JSON.parse(localStorage.getItem('user') || 'null');
-            if (user?.role === 'gudang' && updated.status === 'Approved') {
-              showToast(`✅ Permohonan #${updated.id} disetujui Pimpinan! Siap diserahkan ke teknisi.`, 'success');
-            } else if (user?.role === 'teknisi' && updated.status === 'Approved') {
-              showToast(`✅ Permohonan material disetujui Pimpinan! Silakan ambil barang ke Gudang STO.`, 'success');
-            } else if (user?.role === 'teknisi' && updated.status === 'Released') {
-              showToast(`📦 Material telah diserahkan Gudang! Status: Dalam Perjalanan menuju lokasi.`, 'success');
-            }
           }
         }
       )
-      // 3. Sinkronisasi Real-Time Stok Barang Gudang
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'barang' },
@@ -325,6 +380,8 @@ export function AppProvider({ children }) {
         }
       )
       .subscribe();
+
+    stoChannelRef.current = channel;
 
     return () => {
       clearInterval(syncInterval);
@@ -370,7 +427,7 @@ export function AppProvider({ children }) {
     showToast("Anda telah keluar dari sistem.", "info");
   };
 
-    // SOP 1: Pimpinan membuat tiket tugas dan menyiarkan ke pool teknisi (Diumumkan Terbuka)
+    // SOP 1: Pimpinan membuat tiket tugas dan menyiarkan ke pool teknisi secara instan via Supabase Realtime WebSocket
   const createTugas = async (taskData) => {
     const newId = tugas.length > 0 ? Math.max(...tugas.map(t => Number(t.id) || 0)) + 1 : 101;
     const now = new Date();
@@ -385,7 +442,7 @@ export function AppProvider({ children }) {
       ? `${taskData.pelanggan_nama}${taskData.pelanggan_telp ? ' (' + taskData.pelanggan_telp + ')' : ''} - ${taskData.lokasi}${taskData.keterangan ? ' [' + taskData.keterangan + ']' : ''}`
       : taskData.lokasi;
 
-    const newTask = {
+    let finalTask = {
       id: newId,
       nomor_tiket: taskData.nomor_tiket || `TKT-PYK-2026-${String(newId).padStart(3, '0')}`,
       pimpinan_id: currentUser ? currentUser.id : 1,
@@ -402,40 +459,13 @@ export function AppProvider({ children }) {
       waktu_buat: formattedDate
     };
 
-    // Optimistic UI Update seketika tanpa delay
-    setTugas(prev => [newTask, ...prev]);
-
-    let syncedId = null;
-
-    // 1. Eksekusi cepat via Backend API (sekaligus broadcast ke Telegram Bot @sto_pyk_bot)
-    try {
-      const resApi = await api.post('/tugas', {
-        pimpinan_id: Number(newTask.pimpinan_id) || 1,
-        teknisi_id: newTask.teknisi_id ? Number(newTask.teknisi_id) : null,
-        jenis_kerja: newTask.jenis_kerja,
-        lokasi: newTask.lokasi,
-        pelanggan_nama: newTask.pelanggan_nama,
-        pelanggan_telp: newTask.pelanggan_telp,
-        odp_kode: taskData.odp_kode || 'ODP-PYK-FA/001',
-        odp_id: taskData.odp_id,
-        keterangan: taskData.keterangan || ''
-      }, { timeout: 3500 });
-
-      if (resApi.data?.data?.id) {
-        syncedId = resApi.data.data.id;
-        setTugas(prev => prev.map(t => t.id === newId ? { ...t, id: syncedId } : t));
-      }
-    } catch (apiErr) {
-      console.warn('[createTugas] Backend notice/timeout, fallback langsung ke Supabase:', apiErr.message);
-    }
-
-    // 2. Simpan ke Supabase jika backend offline
-    if (!syncedId && isSupabaseConfigured()) {
+    // 1. Langsung simpan ke Supabase Cloud (Zero-Wait, bypassing local backend timeout)
+    if (isSupabaseConfigured()) {
       try {
-        let insertPayload = {
-          pimpinan_id: Number(newTask.pimpinan_id) || 1,
-          teknisi_id: newTask.teknisi_id ? Number(newTask.teknisi_id) : null,
-          jenis_kerja: newTask.jenis_kerja,
+        const insertPayload = {
+          pimpinan_id: Number(finalTask.pimpinan_id) || 1,
+          teknisi_id: finalTask.teknisi_id ? Number(finalTask.teknisi_id) : null,
+          jenis_kerja: finalTask.jenis_kerja,
           lokasi: fullLokasi,
           status: 'menunggu',
           broadcast_status: 'sent'
@@ -445,18 +475,38 @@ export function AppProvider({ children }) {
           insertPayload.odp_id = Number(taskData.odp_id);
         }
 
-        let { data, error } = await supabase.from('tugas').insert([insertPayload]).select();
-        if (data && data.length > 0) {
-          syncedId = data[0].id;
-          setTugas(prev => prev.map(t => t.id === newId ? { ...t, id: syncedId } : t));
+        const { data: dbData } = await supabase.from('tugas').insert([insertPayload]).select();
+        if (dbData && dbData.length > 0) {
+          finalTask = { ...finalTask, id: dbData[0].id, ...dbData[0] };
         }
       } catch (err) {
-        console.warn('Supabase create task notice:', err);
+        console.warn('[createTugas] Supabase direct insert warning:', err);
       }
     }
 
-    showToast(`Tiket #${syncedId || newId} (${taskData.jenis_kerja}) berhasil diterbitkan!`, "success");
-    return { ...newTask, id: syncedId || newId };
+    // 2. Update state React lokal seketika
+    setTugas(prev => [finalTask, ...prev.filter(t => t.id !== newId && t.id !== finalTask.id)]);
+
+    // 3. Supabase Realtime WebSocket Broadcast: Sinyal langsung masuk ke aplikasi teknisi dalam hitungan milidetik ⚡
+    broadcastLiveSignal('tugas_baru', finalTask);
+
+    // 4. Asinkron kirim ke backend (fire-and-forget, tanpa menahan respons UI pimpinan)
+    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+      api.post('/tugas', {
+        pimpinan_id: Number(finalTask.pimpinan_id) || 1,
+        teknisi_id: finalTask.teknisi_id ? Number(finalTask.teknisi_id) : null,
+        jenis_kerja: finalTask.jenis_kerja,
+        lokasi: finalTask.lokasi,
+        pelanggan_nama: finalTask.pelanggan_nama,
+        pelanggan_telp: finalTask.pelanggan_telp,
+        odp_kode: taskData.odp_kode || 'ODP-PYK-FA/001',
+        odp_id: taskData.odp_id,
+        keterangan: taskData.keterangan || ''
+      }).catch(() => {});
+    }
+
+    showToast(`Tiket #${finalTask.id} (${taskData.jenis_kerja}) berhasil disiarkan secara realtime!`, "success");
+    return finalTask;
   };
 
   // SOP 1.5: Teknisi mengklaim/mengambil tiket yang diumumkan (dengan validasi ketat & dual sync)
@@ -532,6 +582,11 @@ export function AppProvider({ children }) {
       }
     }
 
+    broadcastLiveSignal('tugas_diklaim', {
+      tugas_id: parsedTugasId,
+      teknisi_id: parsedTeknisiId,
+      teknisi_nama: currentUser?.nama_lengkap || 'Teknisi'
+    });
     showToast(`Tiket #${parsedTugasId} berhasil Anda ambil! Segera ajukan permohonan material ke gudang.`, 'success');
     return true;
   };

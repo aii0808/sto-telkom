@@ -52,48 +52,19 @@ export default function Login({ onTriggerSplash }) {
     try {
       let loggedInUser = null;
 
-      // 1. Prioritaskan Autentikasi via Backend API STO (/api/auth/login)
-      // Mendukung pencocokan hash password Bcrypt dari Supabase secara aman & akurat
-      try {
-        const response = await api.post('/auth/login', {
-          email: email.toLowerCase().trim(),
-          password: password.trim()
-        }, { timeout: 2500 });
-
-        if (response.data?.success && (response.data?.data?.user || response.data?.user)) {
-          loggedInUser = response.data?.data?.user || response.data?.user;
-        }
-      } catch (backendErr) {
-        // Jika backend secara spesifik menolak password salah atau email tidak ada
-        if (backendErr.response) {
-          const status = backendErr.response.status;
-          const msg = backendErr.response.data?.message;
-          if (status === 401 || status === 404) {
-            setError(msg || 'Email atau kata sandi tidak valid!');
-            setLoading(false);
-            return;
-          }
-        }
-        console.warn('Backend API tidak merespons, mencoba fallback langsung:', backendErr.message);
-      }
-
-      // 2. Direct real-time check against Supabase 'users' table (Fallback jika server backend offline)
-      if (!loggedInUser && isSupabaseConfigured()) {
+      // 1. Supabase Native Direct Auth: Query edge database Supabase langsung (< 100ms, zero cold-start)
+      if (isSupabaseConfigured()) {
         try {
           const { data: dbUser, error: dbErr } = await supabase
             .from('users')
             .select('*')
             .ilike('email', email.toLowerCase().trim())
-            .single();
+            .maybeSingle();
 
           if (dbUser && !dbErr) {
             if (String(dbUser.password).trim() === String(password).trim()) {
               loggedInUser = dbUser;
-            } else if (dbUser.password.startsWith('$2')) {
-              setError('Password akun Anda dienkripsi (Bcrypt). Harap pastikan server backend aktif di port 5000.');
-              setLoading(false);
-              return;
-            } else {
+            } else if (!dbUser.password.startsWith('$2')) {
               setError('Kata sandi yang Anda masukkan salah!');
               setLoading(false);
               return;
@@ -101,6 +72,31 @@ export default function Login({ onTriggerSplash }) {
           }
         } catch (supabaseErr) {
           console.warn('Supabase auth attempt:', supabaseErr);
+        }
+      }
+
+      // 2. Jika di localhost atau jika password Bcrypt, verifikasi via Backend API Express
+      const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+      if (!loggedInUser && isLocalhost) {
+        try {
+          const response = await api.post('/auth/login', {
+            email: email.toLowerCase().trim(),
+            password: password.trim()
+          }, { timeout: 1500 });
+
+          if (response.data?.success && (response.data?.data?.user || response.data?.user)) {
+            loggedInUser = response.data?.data?.user || response.data?.user;
+          }
+        } catch (backendErr) {
+          if (backendErr.response) {
+            const status = backendErr.response.status;
+            const msg = backendErr.response.data?.message;
+            if (status === 401 || status === 404) {
+              setError(msg || 'Email atau kata sandi tidak valid!');
+              setLoading(false);
+              return;
+            }
+          }
         }
       }
 

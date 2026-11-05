@@ -85,12 +85,17 @@ export default function DashboardTeknisi() {
   
   // Filter daftar tugas:
   // 1. Tiket terbuka yang disiarkan Pimpinan (belum diambil teknisi mana pun)
-  const openTasks = tugas.filter(t => !t.teknisi_id && (t.status === 'Open' || !t.status));
+  const openTasks = tugas.filter(t => {
+    const noTeknisi = !t.teknisi_id || t.teknisi_id === null || t.teknisi_id === 0 || t.teknisi_id === 'null' || t.teknisi_id === '0';
+    const st = String(t.status || '').toLowerCase().trim();
+    const isOpen = st === 'open' || st === 'menunggu' || st === '' || st === 'open pool' || st === 'pending';
+    return noTeknisi && isOpen;
+  });
 
   // 2. Tiket yang diambil oleh teknisi ini
-  const myTasks = tugas.filter(t => t.teknisi_id === user.id);
-  const myActiveTasks = myTasks.filter(t => t.status !== 'Done');
-  const myDoneTasks = myTasks.filter(t => t.status === 'Done');
+  const myTasks = tugas.filter(t => Number(t.teknisi_id) === Number(user?.id));
+  const myActiveTasks = myTasks.filter(t => { const st = String(t.status || '').toLowerCase().trim(); return st !== 'done' && st !== 'selesai'; });
+  const myDoneTasks = myTasks.filter(t => { const st = String(t.status || '').toLowerCase().trim(); return st === 'done' || st === 'selesai'; });
 
   // Tiket aktif untuk navigasi pengerjaan
   const activeTasks = myActiveTasks.length > 0 ? myActiveTasks : (myTasks.length > 0 ? myTasks : []);
@@ -98,7 +103,7 @@ export default function DashboardTeknisi() {
   // Permohonan material yang diajukan oleh teknisi ini
   const myRequests = permohonan.filter(p => {
     const parent = tugas.find(t => t.id === p.tugas_id);
-    return parent?.teknisi_id === user.id;
+    return Number(parent?.teknisi_id) === Number(user?.id);
   });
 
     const activeTasksRef = useRef(activeTasks);

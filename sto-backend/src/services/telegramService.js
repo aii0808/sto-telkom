@@ -21,8 +21,18 @@ const TELEGRAM_API_BASE = `https://api.telegram.org/bot${BOT_TOKEN}`;
 // Helper Escape HTML untuk sanitasi teks Telegram
 const esc = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
+// Pemeriksaan status aktif broadcast Telegram (dapat dinonaktifkan sementara via env TELEGRAM_ENABLED=false)
+const isTelegramEnabled = () => {
+  return process.env.TELEGRAM_ENABLED === 'true' || process.env.TELEGRAM_ENABLED === '1';
+};
+
 // Fungsi pengiriman langsung ke Telegram Group (Sesuai SOP Alur Telegram)
 async function kirimKeGrup(teks, options = {}) {
+  if (!isTelegramEnabled()) {
+    console.log('[Telegram Service] Broadcast Telegram dinonaktifkan sementara (TELEGRAM_ENABLED=false).');
+    return { ok: true, disabled: true, message: 'Broadcast Telegram dinonaktifkan sementara.' };
+  }
+
   const token = process.env.TELEGRAM_TOKEN || process.env.TELEGRAM_BOT_TOKEN || BOT_TOKEN;
   const groupId = process.env.TELEGRAM_GROUP_ID || process.env.TELEGRAM_CHAT_ID || '-1003981401195';
 
@@ -278,6 +288,7 @@ Kepada rekan teknisi <b>${esc(assignedUserName)}</b>, silakan segera menuju ke <
  * Worker polling berkala Telegram untuk menerima aksi klik tombol inline teknisi
  */
 async function pollTelegramUpdates() {
+  if (!isTelegramEnabled()) return;
   if (isPollingActive) return;
   isPollingActive = true;
 
@@ -305,17 +316,23 @@ async function pollTelegramUpdates() {
   }
 }
 
-// Jalankan polling setiap 4 detik untuk merespons tombol inline teknisi
-const pollInterval = setInterval(pollTelegramUpdates, 4000);
-if (pollInterval && typeof pollInterval.unref === 'function') {
-  pollInterval.unref();
+// Jalankan polling setiap 4 detik untuk merespons tombol inline teknisi (hanya jika aktif)
+let pollInterval = null;
+if (isTelegramEnabled()) {
+  pollInterval = setInterval(pollTelegramUpdates, 4000);
+  if (pollInterval && typeof pollInterval.unref === 'function') {
+    pollInterval.unref();
+  }
+  pollTelegramUpdates().catch(() => {});
 }
-pollTelegramUpdates().catch(() => {});
 
 /**
  * Mengirim pesan teks terformat HTML ke satu atau banyak target chat Telegram
  */
 async function sendTelegramMessage(text, target = null, options = {}) {
+  if (!isTelegramEnabled()) {
+    return { success: true, count: 0, disabled: true, message: 'Broadcast Telegram dinonaktifkan sementara.' };
+  }
   let targets = [];
 
   if (target && typeof target === 'string' && target !== 'all' && target !== 'teknisi' && target !== 'gudang') {

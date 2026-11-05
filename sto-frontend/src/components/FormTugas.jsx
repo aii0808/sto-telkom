@@ -74,8 +74,8 @@ function FormTugas() {
       // Eksekusi Sekali: createTugas menangani sinkronisasi backend, Telegram, dan Supabase secara cepat
       const createdTask = await createTugas(taskPayload);
 
-      setPesan(`Tiket #${createdTask.id} berhasil disiarkan ke Grup Telegram! Siapapun teknisi siaga di grup dapat langsung menekan tombol Ambil Tiket.`);
-      showToast('Tiket Berhasil Disimpan & Disiarkan ke Grup Telegram!', 'success');
+      setPesan(`Tiket #${createdTask.id} berhasil diterbitkan & disiarkan secara instan ke seluruh teknisi lapangan!`);
+      showToast('Tiket Berhasil Diterbitkan & Disiarkan Realtime!', 'success');
 
       // Reset form ringan
       setPelangganNama('');
@@ -99,12 +99,12 @@ function FormTugas() {
           <div>
             <h1 className="text-xl font-extrabold flex items-center gap-2">
               <span>Pos Kerjaan Lapangan & Siar Tiket</span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] bg-blue-500/20 text-blue-400 font-mono border border-blue-500/30">
-                Dispatch Telegram
+              <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/20 text-emerald-400 font-mono border border-emerald-500/30">
+                Realtime WebSocket
               </span>
             </h1>
             <p className={`text-xs mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-              Pimpinan menerbitkan penugasan baru. Tiket otomatis disiarkan ke grup Telegram agar teknisi yang siaga dapat langsung mengklaim pekerjaan.
+              Pimpinan menerbitkan penugasan baru. Tiket langsung disiarkan secara instan ke seluruh teknisi lapangan untuk diambil secara terbuka.
             </p>
           </div>
         </div>
@@ -117,7 +117,7 @@ function FormTugas() {
           <div className="flex-1">
             <div className="font-extrabold text-sm mb-0.5">{pesan}</div>
             <div className="text-[11px] opacity-90">
-              Notifikasi telah disiarkan ke bot <strong>@sto_pyk_bot</strong> di grup Telegram teknisi STO Payakumbuh.
+              Tiket otomatis masuk ke antrean tugas terbuka di aplikasi seluruh teknisi yang sedang siaga tanpa perlu refresh.
             </div>
           </div>
         </div>
@@ -267,11 +267,11 @@ function FormTugas() {
           className="w-full py-3.5 px-4 rounded-2xl bg-linear-to-r from-rose-700 via-rose-600 to-rose-700 hover:from-rose-600 hover:to-rose-500 text-white font-extrabold text-xs shadow-xl shadow-rose-900/30 transition active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
         >
           {submitting ? (
-            <span>Menyimpan ke Supabase & Menyiarkan ke Telegram...</span>
+            <span>Menyimpan & Menyiarkan Tiket Realtime...</span>
           ) : (
             <>
               <Send className="w-4 h-4" />
-              <span>🚀 Terbitkan & Siarkan Tiket ke Grup Telegram</span>
+              <span>🚀 Terbitkan & Siarkan Tiket ke Seluruh Teknisi</span>
             </>
           )}
         </button>

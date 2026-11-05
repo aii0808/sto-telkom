@@ -117,10 +117,33 @@ export default function GudangDashboard() {
   const pendingReleaseCount = approvedRequests.length;
   const totalReleasedCount = releasedRequests.length;
 
-  // Filtered inventory
-  const filteredBarang = barang.filter(b => {
-    const matchQuery = b.nama_barang.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                       b.kode?.toLowerCase().includes(searchQuery.toLowerCase());
+  // Resolusi kategori otomatis berdasarkan nama barang standar Telkom
+  const resolveKategori = (b) => {
+    if (b.kategori && b.kategori !== 'Umum') return b.kategori;
+    const name = (b.nama_barang || '').toLowerCase();
+    if (name.includes('kabel') || name.includes('dropcore') || name.includes('fo') || name.includes('fiber')) {
+      return 'Kabel & Serat Optik';
+    }
+    if (name.includes('ont') || name.includes('modem') || name.includes('zte') || name.includes('huawei') || name.includes('fiberhome')) {
+      return 'Perangkat Aktif';
+    }
+    if (name.includes('roset') || name.includes('patchcord') || name.includes('splitter') || name.includes('adapter') || name.includes('odp')) {
+      return 'Perangkat Pasif';
+    }
+    if (name.includes('connector') || name.includes('clamp') || name.includes('sleeve') || name.includes('alkohol') || name.includes('tissue') || name.includes('s-clamp')) {
+      return 'Consumable & Aksesoris';
+    }
+    return 'Aksesoris';
+  };
+
+  // Filtered inventory dengan mapping data Supabase realtime
+  const filteredBarang = barang.map(b => ({
+    ...b,
+    kategori: resolveKategori(b),
+    kode: b.kode || `SKU-TEL-${String(b.id).padStart(3, '0')}`
+  })).filter(b => {
+    const matchQuery = (b.nama_barang || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                       (b.kode || '').toLowerCase().includes(searchQuery.toLowerCase());
     const matchCat = categoryFilter === 'all' || b.kategori === categoryFilter;
     return matchQuery && matchCat;
   });
@@ -130,10 +153,27 @@ export default function GudangDashboard() {
     'Kabel & Serat Optik',
     'Perangkat Aktif',
     'Perangkat Pasif',
-    'Aksesoris Indoor',
-    'Consumable',
+    'Consumable & Aksesoris',
     'Aksesoris'
   ];
+
+  const handleQuickAddStock = async (item, amount) => {
+    if (tambahStokBarang) {
+      await tambahStokBarang(item.id, amount);
+    } else if (updateBarang) {
+      await updateBarang(item.id, { stok: Number(item.stok) + amount });
+      showToast(`Stok ${item.nama_barang} bertambah +${amount} ${item.satuan || 'pcs'}!`, 'success');
+    }
+  };
+
+  const handleDeleteBarang = async (item) => {
+    if (window.confirm(`Hapus ${item.nama_barang} dari katalog master gudang?`)) {
+      if (deleteBarang) {
+        await deleteBarang(item.id);
+        showToast(`Material ${item.nama_barang} berhasil dihapus.`, 'info');
+      }
+    }
+  };
 
   const handleEditSubmit = (e) => {
     e.preventDefault();
@@ -148,8 +188,8 @@ export default function GudangDashboard() {
       nama_barang: item.nama_barang,
       stok: item.stok,
       satuan: item.satuan,
-      kategori: item.kategori || 'Umum',
-      kode: item.kode || ''
+      kategori: resolveKategori(item),
+      kode: item.kode || `SKU-TEL-${String(item.id).padStart(3, '0')}`
     });
   };
 
