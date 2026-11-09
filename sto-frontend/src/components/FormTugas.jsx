@@ -20,21 +20,10 @@ function FormTugas() {
   const [pelangganNama, setPelangganNama] = useState('');
   const [pelangganTelp, setPelangganTelp] = useState('');
   const [lokasi, setLokasi] = useState('Jl. Soekarno-Hatta, Koto Nan IV, Payakumbuh');
-  const [keterangan, setKeterangan] = useState('Pemasangan sambungan baru pelanggan IndiHome. Penarikan kabel dropcore dari ODP dan instalasi modem ONT.');
+  const [keterangan, setKeterangan] = useState(''); // Kosongkan secara default sesuai instruksi
 
   const handleJenisKerjaChange = (newVal) => {
     setJenisKerja(newVal);
-    if (newVal === 'Pasang Baru') {
-      setKeterangan('Pemasangan sambungan baru pelanggan IndiHome. Penarikan kabel dropcore dari ODP dan instalasi modem ONT.');
-    } else if (newVal === 'Perbaikan Gangguan') {
-      setKeterangan('Gangguan internet pelanggan (LOS / redaman tinggi). Pengecekan konektor ODP dan penyambungan ulang.');
-    } else if (newVal === 'Kabel Dropcore Putus') {
-      setKeterangan('Kabel dropcore putus tertimpa pohon / kendala fisik. Butuh penarikan kabel dan splicing baru.');
-    } else if (newVal === 'Ganti Modem ONT') {
-      setKeterangan('Penggantian perangkat modem ONT di rumah pelanggan (indikator power mati / kena petir).');
-    } else if (newVal === 'Maintenance Jaringan') {
-      setKeterangan('Perawatan rutin titik distribusi ODP, penataan splitter optik dan pengecekan redaman.');
-    }
   };
   const [pesan, setPesan] = useState('');
   const [error, setError] = useState('');
@@ -292,7 +281,7 @@ function FormTugas() {
             rows={2}
             value={keterangan}
             onChange={(e) => setKeterangan(e.target.value)}
-            placeholder="Jelaskan kendala, redaman yang terukur, atau instruksi penarikan kabel..."
+            placeholder="Tuliskan catatan khusus pekerjaan jika ada (opsional)..."
             className={`w-full p-3 rounded-2xl border outline-none transition resize-none ${
               isDark
                 ? 'bg-slate-950 border-slate-700 text-white focus:border-rose-500'

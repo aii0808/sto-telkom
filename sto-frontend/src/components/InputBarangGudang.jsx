@@ -1,29 +1,68 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
 import api from '../api/axiosInstance';
 import {
   PlusCircle,
   PackageCheck,
-  History,
   Barcode,
-  Trash2,
-  CheckCircle2,
-  ShieldCheck,
-  Radio,
-  Boxes,
+  Sparkles,
   Camera,
-  Sparkles
+  Layers,
+  Check
 } from 'lucide-react';
 
 export default function InputBarangGudang() {
   const { isDark } = useTheme();
-  const { addBarang, showToast } = useApp();
+  const { barang = [], addBarang, showToast } = useApp();
+
+  // Preset material logistik standar Telkom Akses
+  const defaultPresets = [
+    { name: 'Modem ONT ZTE F670L Dual Band', unit: 'unit', kategori: 'Perangkat Aktif' },
+    { name: 'Modem ONT Huawei HG8245H5', unit: 'unit', kategori: 'Perangkat Aktif' },
+    { name: 'Kabel FO Dropcore 1-Core 150M', unit: 'roll', kategori: 'Kabel & Serat Optik' },
+    { name: 'Kabel Sling Baja Penggantung FO', unit: 'roll', kategori: 'Kabel & Serat Optik' },
+    { name: 'Roset Fiber Optic 1-Core', unit: 'pcs', kategori: 'Perangkat Pasif' },
+    { name: 'Patch Cord SC-UPC 2M', unit: 'pcs', kategori: 'Perangkat Pasif' },
+    { name: 'Splitter PLC 1:8 SC/UPC', unit: 'pcs', kategori: 'Perangkat Pasif' },
+    { name: 'Protection Sleeve 60mm', unit: 'pcs', kategori: 'Aksesoris' }
+  ];
+
+  // Daftar gabungan material untuk dropdown gulir (dari database master barang + preset Telkom)
+  const availableItems = useMemo(() => {
+    const list = [];
+    const seen = new Set();
+
+    (barang || []).forEach(b => {
+      if (b.nama_barang && !seen.has(b.nama_barang.toLowerCase().trim())) {
+        seen.add(b.nama_barang.toLowerCase().trim());
+        list.push({
+          name: b.nama_barang,
+          unit: b.satuan || 'pcs',
+          kategori: b.kategori || 'Material'
+        });
+      }
+    });
+
+    defaultPresets.forEach(p => {
+      if (!seen.has(p.name.toLowerCase().trim())) {
+        seen.add(p.name.toLowerCase().trim());
+        list.push(p);
+      }
+    });
+
+    return list;
+  }, [barang]);
+
+  const [selectedItemName, setSelectedItemName] = useState(defaultPresets[0].name);
+  const [isRegisterNew, setIsRegisterNew] = useState(false);
+  const [newMaterialName, setNewMaterialName] = useState('');
+  const [newMaterialKategori, setNewMaterialKategori] = useState('Aksesoris');
 
   const [form, setForm] = useState({
-    nama_barang: 'Modem ONT ZTE F670L Dual Band',
+    nama_barang: defaultPresets[0].name,
     stok: 5,
-    satuan: 'unit'
+    satuan: defaultPresets[0].unit
   });
 
   // State Nomor Seri untuk perangkat ONT/Modem (Opsional)
@@ -31,50 +70,30 @@ export default function InputBarangGudang() {
   const [serialNumbers, setSerialNumbers] = useState([]);
   const [isScanningCamera, setIsScanningCamera] = useState(false);
 
-  // Recent in-flow history in session
-  const [historyLog, setHistoryLog] = useState([
-    {
-      id: 1,
-      nama_barang: 'Kabel FO Dropcore 1-Core 150M',
-      jumlah: 105,
-      satuan: 'roll',
-      waktu: '2026-10-29 08:30',
-      serial_count: 0
-    },
-    {
-      id: 2,
-      nama_barang: 'Modem ONT ZTE F670L Dual Band',
-      jumlah: 11,
-      satuan: 'unit',
-      waktu: '2026-10-29 09:15',
-      serial_count: 11
-    }
-  ]);
-
   // Deteksi barang kategori ONT atau Modem
   const isOntItem = form.nama_barang.toLowerCase().includes('ont') ||
                     form.nama_barang.toLowerCase().includes('modem');
 
-  // Preset material logistik STO untuk kemudahan staf gudang
-  const materialPresets = [
-    { name: 'Modem ONT ZTE F670L Dual Band', unit: 'unit' },
-    { name: 'Modem ONT Huawei HG8245H5', unit: 'unit' },
-    { name: 'Kabel FO Dropcore 1-Core 150M', unit: 'roll' },
-    { name: 'Kabel Sling Baja Penggantung FO', unit: 'roll' },
-    { name: 'Roset Fiber Optic 1-Core', unit: 'pcs' },
-    { name: 'Patch Cord SC-UPC 2M', unit: 'pcs' },
-    { name: 'Splitter PLC 1:8 SC/UPC', unit: 'pcs' },
-    { name: 'Protection Sleeve 60mm', unit: 'pcs' }
-  ];
-
-  const handleSelectPreset = (preset) => {
-    setForm({
-      nama_barang: preset.name,
-      stok: preset.name.toLowerCase().includes('ont') || preset.name.toLowerCase().includes('modem') ? (serialNumbers.length > 0 ? serialNumbers.length : 5) : 10,
-      satuan: preset.unit
-    });
-    if (!preset.name.toLowerCase().includes('ont') && !preset.name.toLowerCase().includes('modem')) {
+  // Handle perubahan pada dropdown gulir barang
+  const handleDropdownChange = (e) => {
+    const val = e.target.value;
+    if (val === '__REGISTER_NEW__') {
+      setIsRegisterNew(true);
+      setSelectedItemName('__REGISTER_NEW__');
+      setForm(prev => ({ ...prev, nama_barang: newMaterialName, satuan: 'pcs' }));
       setSerialNumbers([]);
+    } else {
+      setIsRegisterNew(false);
+      setSelectedItemName(val);
+      const matched = availableItems.find(item => item.name === val);
+      setForm({
+        nama_barang: val,
+        stok: val.toLowerCase().includes('ont') || val.toLowerCase().includes('modem') ? (serialNumbers.length > 0 ? serialNumbers.length : 5) : 10,
+        satuan: matched ? matched.unit : 'pcs'
+      });
+      if (!val.toLowerCase().includes('ont') && !val.toLowerCase().includes('modem')) {
+        setSerialNumbers([]);
+      }
     }
   };
 
@@ -131,29 +150,29 @@ export default function InputBarangGudang() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.nama_barang.trim()) {
-      showToast('Harap isi nama material!', 'error');
+
+    const finalNama = isRegisterNew ? newMaterialName.trim() : form.nama_barang.trim();
+    if (!finalNama) {
+      showToast('Harap pilih atau ketik nama material!', 'error');
       return;
     }
 
-    const stokCount = serialNumbers.length > 0
-      ? serialNumbers.length
-      : Math.max(1, Number(form.stok) || 1);
-
+    const stokCount = isOntItem && serialNumbers.length > 0 ? serialNumbers.length : parseInt(form.stok, 10);
     const newItem = {
-      nama_barang: form.nama_barang.trim(),
+      nama_barang: finalNama,
       stok: stokCount,
-      satuan: form.satuan
+      satuan: form.satuan || 'pcs',
+      kategori: isRegisterNew ? newMaterialKategori : 'Logistik Sentral'
     };
 
-    // 1. Simpan ke master barang di database
+    // 1. Simpan ke database via addBarang AppContext
     await addBarang(newItem);
 
-    // 2. Jika item ONT dan ada serial numbers, simpan ke database
+    // 2. Jika item ONT dan ada serial numbers, simpan ke database serial
     if (isOntItem && serialNumbers.length > 0) {
       try {
         await api.post('/barang/seri', {
-          model: form.nama_barang,
+          model: finalNama,
           serial_numbers: serialNumbers
         });
       } catch (err) {
@@ -165,7 +184,7 @@ export default function InputBarangGudang() {
       const newEntries = serialNumbers.map((sn, idx) => ({
         id: Date.now() + idx,
         sn,
-        model: form.nama_barang,
+        model: finalNama,
         status: 'Di Gudang',
         lokasi: 'Rak Logistik Sentral STO Payakumbuh',
         tugas_id: null,
@@ -174,29 +193,16 @@ export default function InputBarangGudang() {
       localStorage.setItem('sto_ont_serials', JSON.stringify([...newEntries, ...existingSnStorage]));
     }
 
-    // Add to session history log
-    setHistoryLog([
-      {
-        id: Date.now(),
-        nama_barang: form.nama_barang,
-        jumlah: stokCount,
-        satuan: form.satuan,
-        waktu: new Date().toLocaleString('id-ID'),
-        serial_count: serialNumbers.length
-      },
-      ...historyLog
-    ]);
+    showToast(`Material "${finalNama}" (+${stokCount} ${form.satuan}) berhasil disimpan!`, 'success');
 
-    showToast(
-      `Material "${form.nama_barang}" (+${stokCount} ${form.satuan}) berhasil masuk ke gudang!`,
-      'success'
-    );
-
-    // Reset form
+    // Reset form ke pilihan default yang sudah tersimpan
+    setSelectedItemName(finalNama);
+    setIsRegisterNew(false);
+    setNewMaterialName('');
     setForm({
-      nama_barang: '',
-      stok: 1,
-      satuan: 'pcs'
+      nama_barang: finalNama,
+      stok: 5,
+      satuan: form.satuan
     });
     setSerialNumbers([]);
     setInputSn('');
@@ -205,81 +211,98 @@ export default function InputBarangGudang() {
   return (
     <div className="space-y-6">
       {/* Form Card */}
-      <div className={`p-6 sm:p-8 rounded-3xl border ${isDark ? 'bg-slate-900/80 border-slate-800' : 'bg-white border-slate-200 shadow-sm'} transition-colors`}>
-        <div className="flex items-center gap-3 pb-4 border-b border-slate-200 dark:border-slate-800 mb-6">
-          <span className="p-2.5 rounded-2xl bg-emerald-600/20 text-emerald-400 border border-emerald-500/30">
+      <div className={`p-5 sm:p-7 rounded-3xl border ${isDark ? 'bg-slate-900/80 border-slate-800' : 'bg-white border-slate-200 shadow-sm'} transition-colors`}>
+        
+        {/* Header Form */}
+        <div className="flex items-center gap-3 pb-4 border-b border-slate-200 dark:border-slate-800 mb-5">
+          <span className="p-2 rounded-2xl bg-emerald-600/20 text-emerald-400 border border-emerald-500/30">
             <PlusCircle className="w-5 h-5" />
           </span>
           <div>
-            <h2 className={`text-lg font-extrabold ${isDark ? 'text-white' : 'text-slate-900'} flex items-center gap-2`}>
-              <span>Input Pengadaan Barang Masuk Gudang</span>
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] bg-emerald-500/20 text-emerald-400 font-mono border border-emerald-500/30">
+            <h2 className={`text-base sm:text-lg font-black ${isDark ? 'text-white' : 'text-slate-900'} flex items-center gap-2`}>
+              <span>Input Pengadaan Barang Gudang</span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/20 text-emerald-400 font-mono border border-emerald-500/30">
                 Logistik STO
               </span>
             </h2>
             <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'} mt-0.5`}>
-              Registrasi penambahan material fisik ke gudang STO Telkom Akses Payakumbuh.
+              Pilih dari daftar gulir barang gudang atau daftarkan nama material baru.
             </p>
           </div>
         </div>
 
-
-
-        <form onSubmit={handleSubmit} className="space-y-5 text-xs">
+        <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="sm:col-span-2">
-              <label className={`block font-bold mb-1.5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                Pilih Nama Barang / Material *
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+            
+            {/* Dropdown Gulir Saran Nama Material */}
+            <div className="sm:col-span-2 space-y-2">
+              <label className={`block font-bold mb-1 ${isDark ? 'text-slate-300' : 'text-slate-700'} flex items-center justify-between`}>
+                <span>Pilih Barang / Material (Daftar Gulir) *</span>
+                <span className="text-[10px] font-mono text-emerald-400">Total: {availableItems.length} Material</span>
               </label>
+
               <select
-                value={materialPresets.some(p => p.name === form.nama_barang) ? form.nama_barang : 'CUSTOM'}
-                onChange={e => {
-                  const val = e.target.value;
-                  if (val === 'CUSTOM') {
-                    setForm({ ...form, nama_barang: '' });
-                  } else {
-                    const preset = materialPresets.find(p => p.name === val);
-                    setForm({
-                      ...form,
-                      nama_barang: val,
-                      satuan: preset ? preset.unit : form.satuan
-                    });
-                    if (!val.toLowerCase().includes('ont') && !val.toLowerCase().includes('modem')) {
-                      setSerialNumbers([]);
-                    }
-                  }
-                }}
-                className={`w-full p-3 rounded-xl border ${isDark ? 'bg-slate-950 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'} focus:outline-none focus:border-emerald-500 font-semibold cursor-pointer`}
+                value={selectedItemName}
+                onChange={handleDropdownChange}
+                className={`w-full p-3 rounded-2xl border ${isDark ? 'bg-slate-950 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'} focus:outline-none focus:border-emerald-500 font-bold cursor-pointer text-xs`}
               >
-                {materialPresets.map(preset => (
-                  <option key={preset.name} value={preset.name}>
-                    {preset.name} ({preset.unit})
-                  </option>
-                ))}
-                <option value="CUSTOM">➕ Lainnya (Ketik Manual Sendiri)</option>
+                <optgroup label="📦 Katalog Material Gudang STO:">
+                  {availableItems.map(item => (
+                    <option key={item.name} value={item.name}>
+                      {item.name} ({item.unit})
+                    </option>
+                  ))}
+                </optgroup>
+                <option value="__REGISTER_NEW__">
+                  ➕ Daftarkan / Registrasi Material Baru Lainnya...
+                </option>
               </select>
 
-              {!materialPresets.some(p => p.name === form.nama_barang) && (
-                <input
-                  type="text"
-                  required
-                  placeholder="Ketik nama material baru..."
-                  value={form.nama_barang}
-                  onChange={e => setForm({ ...form, nama_barang: e.target.value })}
-                  className={`mt-2 w-full p-2.5 rounded-xl border ${isDark ? 'bg-slate-950 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'} focus:outline-none focus:border-emerald-500 font-semibold`}
-                />
+              {/* Form Input Baru jika memilih registrasi material baru */}
+              {isRegisterNew && (
+                <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 space-y-2.5 animate-in fade-in">
+                  <div className="text-[11px] font-extrabold text-emerald-400 flex items-center gap-1.5">
+                    <PlusCircle className="w-3.5 h-3.5" />
+                    <span>Registrasi Nama Material Baru (Otomatis Masuk ke Dropdown):</span>
+                  </div>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ketik nama lengkap material baru..."
+                    value={newMaterialName}
+                    onChange={e => {
+                      setNewMaterialName(e.target.value);
+                      setForm(prev => ({ ...prev, nama_barang: e.target.value }));
+                    }}
+                    className={`w-full p-2.5 rounded-xl border text-xs font-semibold ${isDark ? 'bg-slate-950 border-slate-700 text-white' : 'bg-white border-slate-300 text-slate-900'} focus:outline-none focus:border-emerald-500`}
+                  />
+                  <div className="flex items-center gap-2">
+                    <label className="text-[10px] text-slate-400">Kategori:</label>
+                    <select
+                      value={newMaterialKategori}
+                      onChange={e => setNewMaterialKategori(e.target.value)}
+                      className={`p-1.5 rounded-lg border text-xs font-semibold ${isDark ? 'bg-slate-950 border-slate-700 text-white' : 'bg-white border-slate-300 text-slate-900'}`}
+                    >
+                      <option value="Perangkat Aktif">Perangkat Aktif (Modem/ONT)</option>
+                      <option value="Kabel & Serat Optik">Kabel & Serat Optik</option>
+                      <option value="Perangkat Pasif">Perangkat Pasif (Roset/Splitter)</option>
+                      <option value="Aksesoris">Aksesoris / Consumables</option>
+                    </select>
+                  </div>
+                </div>
               )}
             </div>
 
+            {/* Satuan Ukuran */}
             <div>
-              <label className={`block font-bold mb-1.5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+              <label className={`block font-bold mb-1 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
                 Satuan Ukuran *
               </label>
               <select
                 value={form.satuan}
                 onChange={e => setForm({ ...form, satuan: e.target.value })}
-                className={`w-full p-3 rounded-xl border ${isDark ? 'bg-slate-950 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'} focus:outline-none focus:border-emerald-500 cursor-pointer font-bold`}
+                className={`w-full p-3 rounded-2xl border ${isDark ? 'bg-slate-950 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'} focus:outline-none focus:border-emerald-500 cursor-pointer font-bold text-xs`}
               >
                 <option value="pcs">pcs (buah)</option>
                 <option value="unit">unit (perangkat ONT/modem)</option>
@@ -293,7 +316,7 @@ export default function InputBarangGudang() {
 
           {/* OPSI SCAN BARCODE SERIAL NUMBER (OPSIONAL KHUSUS MODEM/ONT) */}
           {isOntItem && (
-            <div className={`p-4 sm:p-5 rounded-2xl border ${isDark ? 'bg-purple-950/20 border-purple-500/30' : 'bg-purple-50/70 border-purple-200'} space-y-3.5 animate-in fade-in duration-200`}>
+            <div className={`p-4 rounded-2xl border ${isDark ? 'bg-purple-950/20 border-purple-500/30' : 'bg-purple-50/70 border-purple-200'} space-y-3 animate-in fade-in`}>
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-purple-500/20">
                 <div className="flex items-center gap-2">
                   <span className="p-1.5 rounded-lg bg-purple-500/20 text-purple-400 border border-purple-500/30">
@@ -305,7 +328,7 @@ export default function InputBarangGudang() {
                       <span className="px-2 py-0.5 rounded-full text-[10px] bg-purple-500/20 text-purple-300 font-mono">Opsional</span>
                     </h4>
                     <p className={`text-[11px] ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                      Anda dapat melakukan scan barcode, ketik manual, atau langsung memasukkan jumlah stok di bawah tanpa scan.
+                      Scan barcode dus modem, buat acak otomatis, atau masukkan jumlah stok langsung.
                     </p>
                   </div>
                 </div>
@@ -323,86 +346,76 @@ export default function InputBarangGudang() {
                   <button
                     type="button"
                     onClick={() => setIsScanningCamera(!isScanningCamera)}
-                    className="px-2.5 py-1 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-[11px] font-bold flex items-center gap-1 transition cursor-pointer shadow"
+                    className="px-2.5 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-[11px] font-bold flex items-center gap-1 transition cursor-pointer"
                   >
-                    <Camera className="w-3 h-3" />
+                    <Camera className="w-3 h-3 text-slate-400" />
                     <span>{isScanningCamera ? 'Tutup Kamera' : 'Scan Kamera'}</span>
                   </button>
                 </div>
               </div>
 
-              {/* Kamera Scanner UI (Opsional) */}
+              {/* Viewfinder Kamera Simulator */}
               {isScanningCamera && (
-                <div className="p-4 rounded-2xl bg-black/80 border border-purple-500/50 text-center space-y-3">
-                  <div className="w-48 h-28 mx-auto border-2 border-dashed border-purple-400 rounded-xl flex items-center justify-center text-purple-300 flex-col gap-1 text-[11px]">
-                    <Camera className="w-6 h-6 animate-pulse text-purple-400" />
-                    <span>Arahkan kamera ke barcode dus ONT</span>
+                <div className="p-4 rounded-xl bg-slate-950 border border-purple-500/50 text-center space-y-3">
+                  <div className="relative w-48 h-32 mx-auto rounded-lg border-2 border-dashed border-purple-400 flex items-center justify-center overflow-hidden bg-slate-900">
+                    <div className="absolute inset-x-0 h-0.5 bg-rose-500 animate-pulse"></div>
+                    <span className="text-[10px] text-slate-400">Arahkan Barcode ke Kamera</span>
                   </div>
                   <button
                     type="button"
                     onClick={handleSimulateScan}
-                    className="px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs cursor-pointer"
+                    className="py-1.5 px-4 rounded-xl bg-purple-600 text-white font-bold text-xs hover:bg-purple-700 transition cursor-pointer"
                   >
-                    ✓ Tangkap & Scan Barcode
+                    [ Simulasi Deteksi Barcode Fisik ]
                   </button>
                 </div>
               )}
 
-              {/* Input Scan Barcode SN Manual */}
+              {/* Input Manual Box */}
               <div className="flex gap-2">
                 <input
                   type="text"
-                  placeholder="Scan barcode fisik atau ketik SN (misal: ZTEGC8B90112)"
+                  placeholder="Ketik SN manual (Contoh: ZTEGC8B12345) atau pisahkan spasi..."
                   value={inputSn}
-                  onChange={(e) => setInputSn(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleAddManualSn();
-                    }
-                  }}
-                  className={`flex-1 p-2.5 rounded-xl border font-mono uppercase font-bold text-xs ${isDark ? 'bg-slate-950 border-purple-700/60 text-white placeholder-slate-500' : 'bg-white border-purple-300 text-slate-900 placeholder-slate-400'} focus:outline-none focus:border-purple-500`}
+                  onChange={e => setInputSn(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddManualSn(); } }}
+                  className={`flex-1 p-2.5 rounded-xl border font-mono text-xs uppercase ${isDark ? 'bg-slate-950 border-purple-500/40 text-white' : 'bg-white border-purple-300 text-slate-900'}`}
                 />
                 <button
                   type="button"
                   onClick={handleAddManualSn}
-                  className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs transition cursor-pointer flex items-center gap-1.5 active:scale-95"
+                  className="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs transition cursor-pointer shrink-0"
                 >
-                  <Barcode className="w-3.5 h-3.5" />
-                  <span>+ Tambah SN</span>
+                  Tambah SN
                 </button>
               </div>
 
-              {/* Daftar Tag SN Terdaftar */}
+              {/* List of SN registered */}
               {serialNumbers.length > 0 && (
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between text-[11px] text-slate-400">
-                    <span>SN Tercatat ({serialNumbers.length} unit):</span>
+                <div className="space-y-1.5 pt-1">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="font-bold text-purple-400">{serialNumbers.length} Serial Number Terdata:</span>
                     <button
                       type="button"
-                      onClick={() => {
-                        setSerialNumbers([]);
-                        setForm(prev => ({ ...prev, stok: 1 }));
-                      }}
-                      className="text-rose-400 hover:underline cursor-pointer font-bold"
+                      onClick={() => { setSerialNumbers([]); setForm(prev => ({ ...prev, stok: 1 })); }}
+                      className="text-rose-400 hover:underline cursor-pointer font-bold text-[10px]"
                     >
-                      Hapus Semua SN
+                      Hapus Semua
                     </button>
                   </div>
 
-                  <div className={`p-3 rounded-xl border max-h-36 overflow-y-auto flex flex-wrap gap-1.5 ${isDark ? 'bg-slate-950/80 border-slate-800' : 'bg-white border-slate-200'}`}>
+                  <div className={`p-2.5 rounded-xl border max-h-32 overflow-y-auto flex flex-wrap gap-1.5 ${isDark ? 'bg-slate-950/80 border-slate-800' : 'bg-white border-slate-200'}`}>
                     {serialNumbers.map((sn, idx) => (
                       <span
                         key={sn + idx}
-                        className="px-2.5 py-1 rounded-lg bg-purple-500/15 border border-purple-500/30 text-purple-300 font-mono text-[11px] font-bold flex items-center gap-1.5"
+                        className="px-2 py-0.5 rounded-lg bg-purple-500/15 border border-purple-500/30 text-purple-300 font-mono text-[10px] font-bold flex items-center gap-1"
                       >
                         <Barcode className="w-3 h-3 text-purple-400" />
                         <span>{sn}</span>
                         <button
                           type="button"
                           onClick={() => handleRemoveSn(idx)}
-                          className="text-slate-400 hover:text-rose-400 ml-1 cursor-pointer font-black text-xs"
-                          title="Hapus SN ini"
+                          className="text-slate-400 hover:text-rose-400 ml-1 cursor-pointer font-black"
                         >
                           ×
                         </button>
@@ -414,9 +427,10 @@ export default function InputBarangGudang() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+          {/* Jumlah Stok & Tombol Simpan */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 pt-1">
             <div>
-              <label className={`block font-bold mb-1.5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+              <label className={`block font-bold mb-1 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
                 Jumlah Stok Masuk Fisik *
               </label>
               <input
@@ -425,19 +439,19 @@ export default function InputBarangGudang() {
                 required
                 value={serialNumbers.length > 0 ? serialNumbers.length : form.stok}
                 onChange={e => setForm({ ...form, stok: Math.max(1, parseInt(e.target.value, 10) || 1) })}
-                className={`w-full p-3 rounded-xl border ${isDark ? 'bg-slate-950 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'} focus:outline-none focus:border-emerald-500 font-bold`}
+                className={`w-full p-3 rounded-2xl border ${isDark ? 'bg-slate-950 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'} focus:outline-none focus:border-emerald-500 font-bold text-xs`}
               />
               <p className="text-[10px] text-slate-500 mt-1">
                 {isOntItem && serialNumbers.length > 0
-                  ? `Kuantitas otomatis disesuaikan dengan jumlah ${serialNumbers.length} Serial Number tercatat.`
-                  : 'Jumlah fisik material yang masuk dan siap diletakkan di rak gudang STO.'}
+                  ? `Kuantitas disesuaikan dengan ${serialNumbers.length} Serial Number.`
+                  : 'Jumlah fisik material yang masuk ke gudang.'}
               </p>
             </div>
 
             <div className="flex items-end">
               <button
                 type="submit"
-                className="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-lg shadow-emerald-950 transition active:scale-98 flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full py-3.5 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-lg shadow-emerald-950 transition active:scale-98 flex items-center justify-center gap-2 cursor-pointer"
               >
                 <PackageCheck className="w-4 h-4" />
                 <span>Simpan</span>
@@ -446,58 +460,6 @@ export default function InputBarangGudang() {
           </div>
 
         </form>
-      </div>
-
-      {/* Riwayat Input Sesi Ini */}
-      <div className={`p-6 rounded-3xl border ${isDark ? 'bg-slate-900/80 border-slate-800' : 'bg-white border-slate-200 shadow-sm'} space-y-4`}>
-        <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-          <div className="flex items-center gap-2">
-            <History className="w-4 h-4 text-slate-400" />
-            <h3 className={`text-sm font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>
-              Riwayat Input Pengadaan Material Sesi Ini
-            </h3>
-          </div>
-          <span className="text-[10px] text-slate-500">Tersimpan di Supabase Cloud</span>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className={`w-full text-left text-xs ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-            <thead className={`${isDark ? 'bg-slate-950/60 text-slate-400' : 'bg-slate-50 text-slate-600'} text-[10px] uppercase font-bold`}>
-              <tr>
-                <th className="px-4 py-2.5 rounded-l-xl">Waktu Transaksi</th>
-                <th className="px-4 py-2.5">Nama Material</th>
-                <th className="px-4 py-2.5 text-right">Jumlah Masuk</th>
-                <th className="px-4 py-2.5 text-center">Nomor Seri (SN)</th>
-                <th className="px-4 py-2.5 rounded-r-xl text-center">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/40">
-              {historyLog.map(item => (
-                <tr key={item.id} className={`${isDark ? 'hover:bg-slate-800/30' : 'hover:bg-slate-50'} transition`}>
-                  <td className="px-4 py-3 font-mono text-[11px] text-slate-400">{item.waktu}</td>
-                  <td className="px-4 py-3 font-semibold">{item.nama_barang}</td>
-                  <td className="px-4 py-3 text-right font-mono font-bold text-emerald-500">
-                    +{item.jumlah} {item.satuan}
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    {item.serial_count > 0 ? (
-                      <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 text-[10px] font-mono font-bold">
-                        {item.serial_count} SN Barcode
-                      </span>
-                    ) : (
-                      <span className="text-slate-500 text-[11px]">-</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-semibold border border-emerald-500/20">
-                      Tersimpan di Rak
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
       </div>
     </div>
   );
