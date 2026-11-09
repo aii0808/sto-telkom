@@ -40,11 +40,11 @@ export default function CetakSuratJalan() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row w-full sm:w-auto items-stretch sm:items-center gap-2.5">
           <select
             value={activeRequest?.id || ''}
             onChange={(e) => setSelectedReqId(Number(e.target.value))}
-            className={`text-xs px-3 py-2 rounded-xl border ${isDark ? 'bg-slate-950 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'} focus:outline-none`}
+            className={`w-full sm:w-auto text-xs px-3 py-2.5 rounded-xl border font-semibold ${isDark ? 'bg-slate-950 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'} focus:outline-none`}
           >
             {releasedRequests.map(req => (
               <option key={req.id} value={req.id}>
@@ -56,7 +56,7 @@ export default function CetakSuratJalan() {
           <button
             onClick={handlePrint}
             disabled={!activeRequest}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-burgundy-600 hover:bg-burgundy-700 disabled:opacity-50 text-white font-bold text-xs shadow-lg shadow-burgundy-600/30 transition cursor-pointer active:scale-95"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-burgundy-600 hover:bg-burgundy-700 disabled:opacity-50 text-white font-bold text-xs shadow-lg shadow-burgundy-600/30 transition cursor-pointer active:scale-95 shrink-0"
           >
             <Printer className="w-4 h-4" />
             <span>Cetak Surat Jalan (Print)</span>
@@ -66,28 +66,28 @@ export default function CetakSuratJalan() {
 
       {/* Official Printable Sheet */}
       {activeRequest ? (
-        <div className={`p-8 rounded-2xl border ${isDark ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200'} shadow-2xl print-card`}>
+        <div className={`p-4 sm:p-8 rounded-2xl border ${isDark ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200'} shadow-2xl print-card`}>
           
           {/* Header */}
-          <div className="border-b-2 border-burgundy-600 pb-4 mb-6 flex items-start justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-burgundy-600 flex items-center justify-center text-white font-black text-2xl shadow-lg border border-burgundy-400">
+          <div className="border-b-2 border-burgundy-600 pb-4 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-burgundy-600 flex items-center justify-center text-white font-black text-xl shadow-lg border border-burgundy-400 shrink-0">
                 TA
               </div>
               <div>
-                <h1 className={`text-lg sm:text-xl font-black ${isDark ? 'text-white' : 'text-slate-900'} print-text-dark tracking-wide`}>
+                <h1 className={`text-base sm:text-lg font-black ${isDark ? 'text-white' : 'text-slate-900'} print-text-dark tracking-wide`}>
                   PT TELKOM AKSES - LOGISTIK & WAREHOUSE
                 </h1>
-                <div className="text-xs font-bold text-burgundy-600 dark:text-burgundy-500">GUDANG MATERIAL STO PAYAKUMBUH - KOTO NAN IV</div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 print-text-dark">Jl. Soekarno Hatta No. 12, Koto Nan IV, Payakumbuh Barat, Kota Payakumbuh | Gudang Logistik Lt. 1</p>
+                <div className="text-[11px] font-bold text-burgundy-600 dark:text-burgundy-500">GUDANG MATERIAL STO PAYAKUMBUH - KOTO NAN IV</div>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 print-text-dark">Jl. Soekarno Hatta No. 12, Koto Nan IV, Payakumbuh Barat | Gudang Lt. 1</p>
               </div>
             </div>
 
-            <div className="text-right text-xs text-slate-500 dark:text-slate-400 print-text-dark font-mono">
+            <div className="text-left sm:text-right text-xs text-slate-500 dark:text-slate-400 print-text-dark font-mono mt-1 sm:mt-0">
               <div className={`font-bold ${isDark ? 'text-slate-200' : 'text-slate-900'} print-text-dark`}>
                 SJ: SJ-GDG/{new Date().getFullYear()}/{String(activeRequest.id).padStart(5, '0')}
               </div>
-              <div className="text-[10px] text-slate-500 dark:text-slate-400 print-text-dark mt-1">
+              <div className="text-[10px] text-slate-500 dark:text-slate-400 print-text-dark mt-0.5">
                 Waktu Rilis: {activeRequest.waktu_rilis || activeRequest.waktu_request}
               </div>
             </div>
@@ -103,16 +103,15 @@ export default function CetakSuratJalan() {
           </div>
 
           {/* Details */}
-          <div className={`grid grid-cols-2 gap-4 p-4 rounded-xl border ${isDark ? 'border-slate-800 bg-slate-950/40 text-slate-300' : 'border-slate-200 bg-slate-50 text-slate-800'} print-table mb-6 text-xs print-text-dark`}>
+          <div className={`grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 rounded-xl border ${isDark ? 'border-slate-800 bg-slate-950/40 text-slate-300' : 'border-slate-200 bg-slate-50 text-slate-800'} print-table mb-6 text-xs print-text-dark`}>
             <div className="space-y-1.5">
-              <div><strong className="text-slate-400">Nomor Tiket Pekerjaan:</strong> #{activeTask?.id || activeRequest.tugas_id}</div>
+              <div><strong className="text-slate-400">Nomor Tiket:</strong> #{activeTask?.id || activeRequest.tugas_id}</div>
               <div><strong className="text-slate-400">Jenis Pekerjaan:</strong> {activeTask?.jenis_kerja}</div>
-              <div><strong className="text-slate-400">Pelanggan / Wilayah:</strong> {activeTask?.pelanggan_nama} ({activeTask?.lokasi})</div>
+              <div><strong className="text-slate-400">Pelanggan & Lokasi:</strong> {activeTask?.pelanggan_nama} ({activeTask?.lokasi})</div>
             </div>
-            <div className="space-y-1.5 text-right">
-              <div><strong className="text-slate-400">Penerima Barang (Teknisi):</strong> {activeTech?.nama_lengkap}</div>
-              <div><strong className="text-slate-400">NIK Teknisi:</strong> TA-{activeTech?.id}9821</div>
-              <div><strong className="text-slate-400">Petugas Gudang:</strong> Siti Rahmawati (Warehouse Admin)</div>
+            <div className="space-y-1.5 text-left sm:text-right">
+              <div><strong className="text-slate-400">Teknisi Pengambil:</strong> {activeTech?.nama_lengkap || 'Teknisi Lapangan'}</div>
+              <div><strong className="text-slate-400">Petugas Logistik:</strong> Siti Rahmawati</div>
             </div>
           </div>
 

@@ -190,19 +190,35 @@ export function AppProvider({ children }) {
       if (resUsers.data && resUsers.data.length > 0) setUsers(resUsers.data);
       if (resBarang.data && resBarang.data.length > 0) setBarang(resBarang.data);
       if (resTugas.data && resTugas.data.length > 0) {
-        // Pastikan setiap tugas memiliki target_lat & target_lng untuk lokasi pemasangan/perbaikan di peta WebGIS
-        const mappedTugas = resTugas.data.map((t, idx) => {
-          const offsetLat = (((Number(t.id || idx) * 7) % 30) - 15) * 0.0012;
-          const offsetLng = (((Number(t.id || idx) * 11) % 30) - 15) * 0.0012;
-          return {
-            ...t,
-            target_lat: t.target_lat || (STO_COORDINATES.lat + offsetLat),
-            target_lng: t.target_lng || (STO_COORDINATES.lng + offsetLng),
-            pelanggan_nama: t.pelanggan_nama || (t.lokasi ? t.lokasi.split('-')[0].trim() : `Pelanggan #${t.id}`),
-            keterangan: t.keterangan || `Pekerjaan ${t.jenis_kerja} di ${t.lokasi}`
-          };
+        let checkinMap = {};
+        let doneList = [];
+        try {
+          checkinMap = JSON.parse(localStorage.getItem('sto_checkin_tasks') || '{}');
+          doneList = JSON.parse(localStorage.getItem('sto_done_tasks') || '[]');
+        } catch (_) {}
+
+        setTugas(prev => {
+          return resTugas.data.map((t, idx) => {
+            const existing = prev.find(p => Number(p.id) === Number(t.id));
+            const isTaskDone = t.status === 'Done' || doneList.includes(Number(t.id)) || existing?.status === 'Done';
+            const offsetLat = (((Number(t.id || idx) * 7) % 30) - 15) * 0.0012;
+            const offsetLng = (((Number(t.id || idx) * 11) % 30) - 15) * 0.0012;
+
+            return {
+              ...t,
+              status: isTaskDone ? 'Done' : (t.status || existing?.status || 'menunggu'),
+              target_lat: t.target_lat || existing?.target_lat || (STO_COORDINATES.lat + offsetLat),
+              target_lng: t.target_lng || existing?.target_lng || (STO_COORDINATES.lng + offsetLng),
+              pelanggan_nama: t.pelanggan_nama || existing?.pelanggan_nama || (t.lokasi ? t.lokasi.split('-')[0].trim() : `Pelanggan #${t.id}`),
+              keterangan: t.keterangan || existing?.keterangan || `Pekerjaan ${t.jenis_kerja} di ${t.lokasi}`,
+              checkin: checkinMap[Number(t.id)] || existing?.checkin || null,
+              foto_bukti: t.foto_bukti || existing?.foto_bukti || null,
+              bastp: existing?.bastp || null,
+              sn_ont: t.sn_ont || existing?.sn_ont || null,
+              material_status: t.material_status || existing?.material_status || null
+            };
+          });
         });
-        setTugas(mappedTugas);
       }
       if (resPermohonan.data && resPermohonan.data.length > 0) setPermohonan(resPermohonan.data);
       if (resDetail.data && resDetail.data.length > 0) setDetailPermohonan(resDetail.data);
@@ -1011,18 +1027,33 @@ export function AppProvider({ children }) {
       });
     }
 
-    // 3. Sinkronisasi status selesai ke Supabase
+    // 3. Simpan status selesai permanen di penyimpanan lokal
+    try {
+      const doneList = JSON.parse(localStorage.getItem('sto_done_tasks') || '[]');
+      if (!doneList.includes(parsedTugasId)) {
+        doneList.push(parsedTugasId);
+        localStorage.setItem('sto_done_tasks', JSON.stringify(doneList));
+      }
+    } catch (_) {}
+
+    // 4. Sinkronisasi status selesai ke Supabase Cloud (hanya kolom yang valid di tabel)
     if (isSupabaseConfigured()) {
       try {
         await supabase.from('tugas').update({
           status: 'Done',
-          foto_bukti: proof,
-          catatan: summaryNoteForDb
+          foto_bukti: proof
         }).eq('id', parsedTugasId);
       } catch (err) {
-        console.warn('Supabase finish task error:', err);
+        console.warn('Supabase finish task notice:', err);
       }
     }
+
+    // 5. Broadcast sinyal selesai via Supabase Realtime WebSocket
+    broadcastLiveSignal('tugas_selesai', {
+      tugas_id: parsedTugasId,
+      status: 'Done',
+      sn_ont: snOnt
+    });
 
     // Update status serial number ONT di penyimpanan lokal agar statusnya otomatis Terpasang
     try {
@@ -1223,11 +1254,16 @@ export function AppProvider({ children }) {
       checkin: { lat, lng, time: waktu, verified: true }
     } : t));
 
+    try {
+      const checkinMap = JSON.parse(localStorage.getItem('sto_checkin_tasks') || '{}');
+      checkinMap[parsedId] = { lat, lng, time: waktu, verified: true };
+      localStorage.setItem('sto_checkin_tasks', JSON.stringify(checkinMap));
+    } catch (_) {}
+
     if (isSupabaseConfigured()) {
       try {
         await supabase.from('tugas').update({
-          status: 'Progress',
-          catatan: `GPS Aktif: Sudah sampai di lokasi kerja (${lat.toFixed(4)}, ${lng.toFixed(4)}) pk ${waktu}`
+          status: 'Progress'
         }).eq('id', parsedId);
       } catch (_) {}
     }

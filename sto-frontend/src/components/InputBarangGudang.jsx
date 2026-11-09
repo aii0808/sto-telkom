@@ -21,9 +21,9 @@ export default function InputBarangGudang() {
   const { addBarang, showToast } = useApp();
 
   const [form, setForm] = useState({
-    nama_barang: '',
-    stok: 1,
-    satuan: 'pcs'
+    nama_barang: 'Modem ONT ZTE F670L Dual Band',
+    stok: 5,
+    satuan: 'unit'
   });
 
   // State Nomor Seri untuk perangkat ONT/Modem (Opsional)
@@ -223,49 +223,53 @@ export default function InputBarangGudang() {
           </div>
         </div>
 
-        {/* Preset Pilihan Cepat Material Telkom */}
-        <div className="mb-6 space-y-2">
-          <label className={`block font-bold text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-            Pilih Cepat Material Standar Telkom Akses:
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {materialPresets.map(preset => {
-              const active = form.nama_barang === preset.name;
-              return (
-                <button
-                  key={preset.name}
-                  type="button"
-                  onClick={() => handleSelectPreset(preset)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition cursor-pointer ${
-                    active
-                      ? 'bg-emerald-600 text-white border-emerald-500 shadow-md shadow-emerald-950'
-                      : isDark
-                      ? 'bg-slate-950 text-slate-300 border-slate-800 hover:border-slate-700'
-                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:border-slate-300'
-                  }`}
-                >
-                  {preset.name}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+
 
         <form onSubmit={handleSubmit} className="space-y-5 text-xs">
           
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="sm:col-span-2">
               <label className={`block font-bold mb-1.5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                Nama Barang / Model Material *
+                Pilih Nama Barang / Material *
               </label>
-              <input
-                type="text"
-                required
-                placeholder="Contoh: Modem ONT ZTE F670L / Kabel FO Dropcore / Roset FO"
-                value={form.nama_barang}
-                onChange={e => setForm({ ...form, nama_barang: e.target.value })}
-                className={`w-full p-3 rounded-xl border ${isDark ? 'bg-slate-950 border-slate-700 text-white placeholder-slate-500' : 'bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400'} focus:outline-none focus:border-emerald-500 font-semibold`}
-              />
+              <select
+                value={materialPresets.some(p => p.name === form.nama_barang) ? form.nama_barang : 'CUSTOM'}
+                onChange={e => {
+                  const val = e.target.value;
+                  if (val === 'CUSTOM') {
+                    setForm({ ...form, nama_barang: '' });
+                  } else {
+                    const preset = materialPresets.find(p => p.name === val);
+                    setForm({
+                      ...form,
+                      nama_barang: val,
+                      satuan: preset ? preset.unit : form.satuan
+                    });
+                    if (!val.toLowerCase().includes('ont') && !val.toLowerCase().includes('modem')) {
+                      setSerialNumbers([]);
+                    }
+                  }
+                }}
+                className={`w-full p-3 rounded-xl border ${isDark ? 'bg-slate-950 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'} focus:outline-none focus:border-emerald-500 font-semibold cursor-pointer`}
+              >
+                {materialPresets.map(preset => (
+                  <option key={preset.name} value={preset.name}>
+                    {preset.name} ({preset.unit})
+                  </option>
+                ))}
+                <option value="CUSTOM">➕ Lainnya (Ketik Manual Sendiri)</option>
+              </select>
+
+              {!materialPresets.some(p => p.name === form.nama_barang) && (
+                <input
+                  type="text"
+                  required
+                  placeholder="Ketik nama material baru..."
+                  value={form.nama_barang}
+                  onChange={e => setForm({ ...form, nama_barang: e.target.value })}
+                  className={`mt-2 w-full p-2.5 rounded-xl border ${isDark ? 'bg-slate-950 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'} focus:outline-none focus:border-emerald-500 font-semibold`}
+                />
+              )}
             </div>
 
             <div>
@@ -433,10 +437,10 @@ export default function InputBarangGudang() {
             <div className="flex items-end">
               <button
                 type="submit"
-                className="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-lg shadow-emerald-950 transition active:scale-98 flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-lg shadow-emerald-950 transition active:scale-98 flex items-center justify-center gap-2 cursor-pointer"
               >
                 <PackageCheck className="w-4 h-4" />
-                <span>Simpan Material ke Inventaris Gudang</span>
+                <span>Simpan</span>
               </button>
             </div>
           </div>

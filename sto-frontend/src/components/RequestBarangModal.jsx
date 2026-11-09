@@ -109,39 +109,44 @@ function RequestBarangModal({ tugasId, onClose, onSuccess }) {
         )}
 
         <div className="space-y-3 text-xs mb-4">
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <select
               value={selectedBarang}
               onChange={(e) => setSelectedBarang(e.target.value)}
-              className={`flex-1 p-2.5 rounded-xl border outline-none cursor-pointer ${
+              className={`w-full sm:flex-1 p-2.5 rounded-xl border outline-none cursor-pointer text-xs font-semibold ${
                 isDark ? 'bg-slate-950 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
               }`}
             >
               {barangList.map((b) => (
                 <option key={b.id} value={b.id}>
-                  {b.nama_barang} (Sisa: {b.stok} {b.satuan})
+                  {b.nama_barang} (Stok: {b.stok} {b.satuan})
                 </option>
               ))}
             </select>
 
-            <input
-              type="number"
-              min="1"
-              value={jumlah}
-              onChange={(e) => setJumlah(e.target.value)}
-              className={`w-16 p-2.5 rounded-xl border text-center font-bold outline-none ${
-                isDark ? 'bg-slate-950 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
-              }`}
-            />
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 p-1 rounded-xl border border-slate-700 bg-slate-950/60 shrink-0">
+                <span className="text-[11px] text-slate-400 pl-1.5 font-bold">Qty:</span>
+                <input
+                  type="number"
+                  min="1"
+                  value={jumlah}
+                  onChange={(e) => setJumlah(e.target.value)}
+                  className={`w-16 p-1.5 rounded-lg border text-center font-bold outline-none text-xs ${
+                    isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-300 text-slate-900'
+                  }`}
+                />
+              </div>
 
-            <button
-              type="button"
-              onClick={handleTambah}
-              className="p-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold transition flex items-center justify-center cursor-pointer shadow"
-              title="Tambah Barang"
-            >
-              <Plus className="w-4 h-4" />
-            </button>
+              <button
+                type="button"
+                onClick={handleTambah}
+                className="flex-1 sm:flex-initial py-2.5 px-3.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow shrink-0 active:scale-95"
+              >
+                <Plus className="w-4 h-4" />
+                <span>+ Tambah Material</span>
+              </button>
+            </div>
           </div>
 
           {/* Cart Table */}

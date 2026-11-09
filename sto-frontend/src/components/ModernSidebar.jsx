@@ -75,6 +75,11 @@ export default function ModernSidebar({ activeTab, onTabChange }) {
             key: 'pengerjaan',
             label: 'Pemasangan & BASTP Digital',
             icon: Camera
+          },
+          {
+            key: 'cetak-surat',
+            label: 'Cetak Surat Permohonan',
+            icon: Printer
           }
         ];
 

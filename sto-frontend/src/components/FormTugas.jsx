@@ -14,13 +14,28 @@ function FormTugas() {
   const { isDark } = useTheme();
   const { createTugas, odp = [], users = [], showToast } = useApp();
 
-  const [jenisKerja, setJenisKerja] = useState('Kabel Dropcore Putus');
+  const [jenisKerja, setJenisKerja] = useState('Pasang Baru');
   const [selectedTeknisiId, setSelectedTeknisiId] = useState('99');
   const [selectedOdpId, setSelectedOdpId] = useState('');
   const [pelangganNama, setPelangganNama] = useState('');
   const [pelangganTelp, setPelangganTelp] = useState('');
   const [lokasi, setLokasi] = useState('Jl. Soekarno-Hatta, Koto Nan IV, Payakumbuh');
-  const [keterangan, setKeterangan] = useState('Kabel dropcore putus tertimpa pohon, butuh penarikan dan splicing ulang.');
+  const [keterangan, setKeterangan] = useState('Pemasangan sambungan baru pelanggan IndiHome. Penarikan kabel dropcore dari ODP dan instalasi modem ONT.');
+
+  const handleJenisKerjaChange = (newVal) => {
+    setJenisKerja(newVal);
+    if (newVal === 'Pasang Baru') {
+      setKeterangan('Pemasangan sambungan baru pelanggan IndiHome. Penarikan kabel dropcore dari ODP dan instalasi modem ONT.');
+    } else if (newVal === 'Perbaikan Gangguan') {
+      setKeterangan('Gangguan internet pelanggan (LOS / redaman tinggi). Pengecekan konektor ODP dan penyambungan ulang.');
+    } else if (newVal === 'Kabel Dropcore Putus') {
+      setKeterangan('Kabel dropcore putus tertimpa pohon / kendala fisik. Butuh penarikan kabel dan splicing baru.');
+    } else if (newVal === 'Ganti Modem ONT') {
+      setKeterangan('Penggantian perangkat modem ONT di rumah pelanggan (indikator power mati / kena petir).');
+    } else if (newVal === 'Maintenance Jaringan') {
+      setKeterangan('Perawatan rutin titik distribusi ODP, penataan splitter optik dan pengecekan redaman.');
+    }
+  };
   const [pesan, setPesan] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -145,18 +160,18 @@ function FormTugas() {
             </label>
             <select
               value={jenisKerja}
-              onChange={(e) => setJenisKerja(e.target.value)}
+              onChange={(e) => handleJenisKerjaChange(e.target.value)}
               className={`w-full p-3 rounded-2xl border outline-none transition cursor-pointer font-semibold ${
                 isDark
                   ? 'bg-slate-950 border-slate-700 text-white focus:border-rose-500'
                   : 'bg-white border-slate-300 text-slate-900 focus:border-rose-500'
               }`}
             >
-              <option value="Kabel Dropcore Putus">Kabel Dropcore Putus (Trouble / Splicing)</option>
-              <option value="Pasang Baru IndiHome">Pasang Baru IndiHome (PSB Fiber)</option>
+              <option value="Pasang Baru">Pasang Baru (PSB IndiHome Fiber)</option>
               <option value="Perbaikan Gangguan">Perbaikan Gangguan (LOS / Redaman Tinggi)</option>
-              <option value="Maintenance ODP">Maintenance ODP (Peremajaan Splitter)</option>
+              <option value="Kabel Dropcore Putus">Kabel Dropcore Putus (Trouble / Splicing)</option>
               <option value="Ganti Modem ONT">Ganti Modem ONT (Petir / Rusak)</option>
+              <option value="Maintenance Jaringan">Maintenance Jaringan / ODP</option>
             </select>
           </div>
 

@@ -395,8 +395,9 @@ function DashboardPimpinan() {
                             <td className="px-3 py-2.5 font-bold font-mono">#{t.id}</td>
                             <td className="px-3 py-2.5">
                               <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                                t.jenis_kerja === 'Pasang Baru' ? 'bg-blue-600/20 text-blue-400 border-blue-500/30' :
-                                t.jenis_kerja === 'Gangguan' ? 'bg-rose-600/20 text-rose-400 border-rose-500/30' :
+                                (t.jenis_kerja?.includes('Pasang') || t.jenis_kerja === 'Pasang Baru') ? 'bg-blue-600/20 text-blue-400 border-blue-500/30' :
+                                (t.jenis_kerja?.includes('Gangguan') || t.jenis_kerja?.includes('Putus')) ? 'bg-rose-600/20 text-rose-400 border-rose-500/30' :
+                                t.jenis_kerja?.includes('Modem') ? 'bg-amber-600/20 text-amber-400 border-amber-500/30' :
                                 'bg-purple-600/20 text-purple-400 border-purple-500/30'
                               }`}>
                                 {t.jenis_kerja}

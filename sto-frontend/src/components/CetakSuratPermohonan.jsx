@@ -48,11 +48,11 @@ export default function CetakSuratPermohonan() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row w-full sm:w-auto items-stretch sm:items-center gap-2.5">
           <select
             value={activeRequest?.id || ''}
             onChange={(e) => setSelectedReqId(Number(e.target.value))}
-            className={`text-xs px-3 py-2 rounded-xl border ${isDark ? 'bg-slate-950 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'} focus:outline-none`}
+            className={`w-full sm:w-auto text-xs px-3 py-2.5 rounded-xl border font-semibold ${isDark ? 'bg-slate-950 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'} focus:outline-none`}
           >
             {techRequests.map(req => (
               <option key={req.id} value={req.id}>
@@ -63,38 +63,38 @@ export default function CetakSuratPermohonan() {
 
           <button
             onClick={handlePrint}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-burgundy-600 hover:bg-burgundy-700 text-white font-bold text-xs shadow-lg shadow-burgundy-600/30 transition cursor-pointer active:scale-95"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-burgundy-600 hover:bg-burgundy-700 text-white font-bold text-xs shadow-lg shadow-burgundy-600/30 transition cursor-pointer active:scale-95 shrink-0"
           >
             <Printer className="w-4 h-4" />
-            <span>Cetak Formulir (Print)</span>
+            <span>🖨️ Cetak Formulir (Print)</span>
           </button>
         </div>
       </div>
 
       {/* Official Telkom Akses Printable Letter */}
       {activeRequest ? (
-        <div className={`p-8 rounded-2xl border ${isDark ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200'} shadow-2xl print-card`}>
+        <div className={`p-4 sm:p-8 rounded-2xl border ${isDark ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200'} shadow-2xl print-card`}>
           
           {/* Official Letterhead (Kop Surat) */}
-          <div className="border-b-2 border-burgundy-600 pb-4 mb-6 flex items-start justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-burgundy-600 flex items-center justify-center text-white font-black text-2xl shadow-lg border border-burgundy-400">
+          <div className="border-b-2 border-burgundy-600 pb-4 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-burgundy-600 flex items-center justify-center text-white font-black text-xl shadow-lg border border-burgundy-400 shrink-0">
                 TA
               </div>
               <div>
-                <h1 className={`text-lg sm:text-xl font-black ${isDark ? 'text-white' : 'text-slate-900'} print-text-dark tracking-wide`}>
+                <h1 className={`text-base sm:text-lg font-black ${isDark ? 'text-white' : 'text-slate-900'} print-text-dark tracking-wide`}>
                   PT TELKOM AKSES - REGIONAL OPERATION
                 </h1>
-                <div className="text-xs font-bold text-burgundy-600 dark:text-burgundy-500">SENTRAL TELEPON OTOMATIS (STO) PAYAKUMBUH - KOTO NAN IV</div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 print-text-dark">Jl. Soekarno Hatta No. 12, Koto Nan IV, Payakumbuh Barat, Kota Payakumbuh | Telp: (0752) 92881</p>
+                <div className="text-[11px] font-bold text-burgundy-600 dark:text-burgundy-500">SENTRAL TELEPON OTOMATIS (STO) PAYAKUMBUH - KOTO NAN IV</div>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 print-text-dark">Jl. Soekarno Hatta No. 12, Koto Nan IV, Payakumbuh Barat | Telp: (0752) 92881</p>
               </div>
             </div>
 
-            <div className="text-right text-xs text-slate-500 dark:text-slate-400 print-text-dark font-mono">
+            <div className="text-left sm:text-right text-xs text-slate-500 dark:text-slate-400 print-text-dark font-mono mt-1 sm:mt-0">
               <div className={`font-bold ${isDark ? 'text-slate-200' : 'text-slate-900'} print-text-dark`}>
                 NO: SPB/STO-PYK/{new Date().getFullYear()}/{String(activeRequest.id).padStart(4, '0')}
               </div>
-              <div className="text-[10px] text-slate-500 dark:text-slate-400 print-text-dark mt-1">
+              <div className="text-[10px] text-slate-500 dark:text-slate-400 print-text-dark mt-0.5">
                 Tanggal: {activeRequest.waktu_request || new Date().toISOString().split('T')[0]}
               </div>
             </div>
