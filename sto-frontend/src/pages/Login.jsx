@@ -19,7 +19,9 @@ import {
   UserPlus,
   LogIn,
   Wrench,
-  Package
+  Package,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 
 export default function Login({ onTriggerSplash }) {
@@ -33,6 +35,8 @@ export default function Login({ onTriggerSplash }) {
   const [regNama, setRegNama] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regPassword, setRegPassword] = useState('');
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showRegPassword, setShowRegPassword] = useState(false);
   const regRole = 'teknisi'; // Strictly Teknisi! Pimpinan and Gudang cannot be self-registered
 
   const [error, setError] = useState('');
@@ -329,17 +333,25 @@ export default function Login({ onTriggerSplash }) {
                 <div className="relative">
                   <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
-                    type="password"
+                    type={showLoginPassword ? "text" : "password"}
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className={`w-full pl-10 pr-3.5 py-3 rounded-2xl text-xs font-medium border outline-none transition ${
+                    className={`w-full pl-10 pr-10 py-3 rounded-2xl text-xs font-medium border outline-none transition ${
                       isDark
                         ? 'bg-slate-950/80 border-slate-700 text-white focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20'
                         : 'bg-slate-50 border-slate-300 text-slate-900 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20'
                     }`}
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowLoginPassword(!showLoginPassword)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition cursor-pointer p-1"
+                    title={showLoginPassword ? "Sembunyikan Kata Sandi" : "Tampilkan Kata Sandi"}
+                  >
+                    {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
               </div>
 
@@ -442,17 +454,25 @@ export default function Login({ onTriggerSplash }) {
                 <div className="relative">
                   <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
-                    type="password"
+                    type={showRegPassword ? "text" : "password"}
                     required
                     value={regPassword}
                     onChange={(e) => setRegPassword(e.target.value)}
                     placeholder="Minimal 6 karakter"
-                    className={`w-full pl-10 pr-3.5 py-2.5 rounded-2xl text-xs font-medium border outline-none transition ${
+                    className={`w-full pl-10 pr-10 py-2.5 rounded-2xl text-xs font-medium border outline-none transition ${
                       isDark
                         ? 'bg-slate-950/80 border-slate-700 text-white focus:border-rose-500'
                         : 'bg-slate-50 border-slate-300 text-slate-900 focus:border-rose-500'
                     }`}
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowRegPassword(!showRegPassword)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition cursor-pointer p-1"
+                    title={showRegPassword ? "Sembunyikan Kata Sandi" : "Tampilkan Kata Sandi"}
+                  >
+                    {showRegPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
               </div>
 

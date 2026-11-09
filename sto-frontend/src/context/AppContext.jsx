@@ -427,7 +427,7 @@ export function AppProvider({ children }) {
     showToast("Anda telah keluar dari sistem.", "info");
   };
 
-    // SOP 1: Pimpinan membuat tiket tugas dan menyiarkan ke pool teknisi secara instan via Supabase Realtime WebSocket
+    // SOP 1: Pimpinan membuat tiket tugas dan menyiarkan ke pool teknisi secara instan via Supabase Realtime WebSocket & Telegram
   const createTugas = async (taskData) => {
     const newId = tugas.length > 0 ? Math.max(...tugas.map(t => Number(t.id) || 0)) + 1 : 101;
     const now = new Date();
@@ -442,11 +442,14 @@ export function AppProvider({ children }) {
       ? `${taskData.pelanggan_nama}${taskData.pelanggan_telp ? ' (' + taskData.pelanggan_telp + ')' : ''} - ${taskData.lokasi}${taskData.keterangan ? ' [' + taskData.keterangan + ']' : ''}`
       : taskData.lokasi;
 
+    // Pastikan teknisi_id tidak null (menggunakan id 99 = Siaga Pool Terbuka jika tidak ditugaskan khusus)
+    const assignedTeknisiId = taskData.teknisi_id && Number(taskData.teknisi_id) !== 0 ? Number(taskData.teknisi_id) : 99;
+
     let finalTask = {
       id: newId,
       nomor_tiket: taskData.nomor_tiket || `TKT-PYK-2026-${String(newId).padStart(3, '0')}`,
       pimpinan_id: currentUser ? currentUser.id : 1,
-      teknisi_id: taskData.teknisi_id ? Number(taskData.teknisi_id) : null,
+      teknisi_id: assignedTeknisiId,
       jenis_kerja: taskData.jenis_kerja,
       lokasi: taskData.lokasi,
       pelanggan_nama: taskData.pelanggan_nama || "Pelanggan Telkom",
@@ -459,12 +462,12 @@ export function AppProvider({ children }) {
       waktu_buat: formattedDate
     };
 
-    // 1. Langsung simpan ke Supabase Cloud (Zero-Wait, bypassing local backend timeout)
+    // 1. Simpan langsung ke database Supabase Cloud
     if (isSupabaseConfigured()) {
       try {
         const insertPayload = {
           pimpinan_id: Number(finalTask.pimpinan_id) || 1,
-          teknisi_id: finalTask.teknisi_id ? Number(finalTask.teknisi_id) : null,
+          teknisi_id: assignedTeknisiId,
           jenis_kerja: finalTask.jenis_kerja,
           lokasi: fullLokasi,
           status: 'menunggu',
@@ -475,12 +478,14 @@ export function AppProvider({ children }) {
           insertPayload.odp_id = Number(taskData.odp_id);
         }
 
-        const { data: dbData } = await supabase.from('tugas').insert([insertPayload]).select();
-        if (dbData && dbData.length > 0) {
+        const { data: dbData, error: dbErr } = await supabase.from('tugas').insert([insertPayload]).select();
+        if (!dbErr && dbData && dbData.length > 0) {
           finalTask = { ...finalTask, id: dbData[0].id, ...dbData[0] };
+        } else if (dbErr) {
+          console.warn('[createTugas] Supabase direct insert notice:', dbErr.message);
         }
       } catch (err) {
-        console.warn('[createTugas] Supabase direct insert warning:', err);
+        console.warn('[createTugas] Supabase insert warning:', err);
       }
     }
 
@@ -490,11 +495,42 @@ export function AppProvider({ children }) {
     // 3. Supabase Realtime WebSocket Broadcast: Sinyal langsung masuk ke aplikasi teknisi dalam hitungan milidetik ⚡
     broadcastLiveSignal('tugas_baru', finalTask);
 
-    // 4. Asinkron kirim ke backend (fire-and-forget, tanpa menahan respons UI pimpinan)
+    // 4. Siarkan Notifikasi ke Grup Telegram Bot @sto_pyk_bot (Asinkron / Non-blocking)
+    try {
+      const botToken = '8893464249:AAFhp-jmadAfKHrYfM56EzWyLN2d9_iaMm4';
+      const groupId = '-1003981401195';
+      const odpKode = taskData.odp_kode || 'ODP-PYK-FA/001';
+      const assignedUser = users.find(u => Number(u.id) === assignedTeknisiId);
+      const penugasanText = assignedTeknisiId === 99 ? '📢 SIAGA TERBUKA (Siapapun Teknisi Dapat Mengambil Tiket)' : `👷 ${assignedUser?.nama_lengkap || 'Teknisi Lapangan'}`;
+
+      const teksTelegram = `🚨 <b>[TELKOM AKSES — NOC DISPATCH STO PAYAKUMBUH]</b>\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `⚡ <b>WORK ORDER / TIKET GANGGUAN BARU</b>\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `📋 <b>No. Tiket:</b> #${finalTask.id}\n` +
+        `🔌 <b>Titik ODP:</b> <code>${odpKode}</code>\n` +
+        `📍 <b>Lokasi / Sektor:</b> ${finalTask.lokasi}\n` +
+        `💼 <b>Klasifikasi:</b> ${finalTask.jenis_kerja}\n` +
+        (finalTask.pelanggan_nama ? `👤 <b>Pelanggan:</b> ${finalTask.pelanggan_nama}\n` : '') +
+        (finalTask.pelanggan_telp ? `📞 <b>Kontak:</b> ${finalTask.pelanggan_telp}\n` : '') +
+        (finalTask.keterangan ? `📝 <b>Instruksi NOC:</b> ${finalTask.keterangan}\n` : '') +
+        `📊 <b>Penugasan:</b> <code>${penugasanText}</code>\n` +
+        `⏱️ <b>Target SLA:</b> &lt; 3 Jam (Prioritas Utama)\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `👉 <a href="https://sto-telkom.vercel.app">Buka Aplikasi STO Payakumbuh</a>`;
+
+      fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: groupId, text: teksTelegram, parse_mode: 'HTML' })
+      }).catch(() => {});
+    } catch (_) {}
+
+    // 5. Asinkron kirim ke backend lokal jika ada
     if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
       api.post('/tugas', {
         pimpinan_id: Number(finalTask.pimpinan_id) || 1,
-        teknisi_id: finalTask.teknisi_id ? Number(finalTask.teknisi_id) : null,
+        teknisi_id: assignedTeknisiId,
         jenis_kerja: finalTask.jenis_kerja,
         lokasi: finalTask.lokasi,
         pelanggan_nama: finalTask.pelanggan_nama,
@@ -505,7 +541,7 @@ export function AppProvider({ children }) {
       }).catch(() => {});
     }
 
-    showToast(`Tiket #${finalTask.id} (${taskData.jenis_kerja}) berhasil disiarkan secara realtime!`, "success");
+    showToast(`Tiket #${finalTask.id} (${taskData.jenis_kerja}) berhasil disiarkan ke aplikasi & Telegram!`, "success");
     return finalTask;
   };
 
@@ -530,7 +566,8 @@ export function AppProvider({ children }) {
       return false;
     }
 
-    if (targetTask.teknisi_id && targetTask.teknisi_id !== parsedTeknisiId && targetTask.status !== 'Open') {
+    const isPoolTask = !targetTask.teknisi_id || Number(targetTask.teknisi_id) === 99 || Number(targetTask.teknisi_id) === 0;
+    if (!isPoolTask && Number(targetTask.teknisi_id) !== parsedTeknisiId && targetTask.status !== 'Open' && targetTask.status !== 'menunggu') {
       showToast('Tiket ini sudah diambil oleh teknisi lain!', 'error');
       return false;
     }
@@ -554,9 +591,7 @@ export function AppProvider({ children }) {
       return t;
     }));
 
-    // GPS link removed
-
-    // 3. Sinkronisasi langsung ke Supabase: Pastikan riwayat kerja tersimpan di tabel tugas Supabase
+    // 3. Sinkronisasi langsung ke Supabase
     if (isSupabaseConfigured()) {
       try {
         const { data: updateRes, error: updateErr } = await supabase.from('tugas').update({
@@ -564,7 +599,7 @@ export function AppProvider({ children }) {
           status: 'Progress'
         }).eq('id', parsedTugasId).select();
 
-        // Jika baris tiket belum ada di Supabase (karena seed lokal), insert ke tabel tugas Supabase
+        // Jika baris tiket belum ada di Supabase, insert
         if (!updateErr && (!updateRes || updateRes.length === 0)) {
           const matched = targetTask;
           await supabase.from('tugas').insert([{
@@ -582,11 +617,32 @@ export function AppProvider({ children }) {
       }
     }
 
+    const techName = currentUser?.nama_lengkap || 'Teknisi Lapangan';
+
+    // Broadcast sinyal instan via WebSocket Supabase Realtime
     broadcastLiveSignal('tugas_diklaim', {
       tugas_id: parsedTugasId,
       teknisi_id: parsedTeknisiId,
-      teknisi_nama: currentUser?.nama_lengkap || 'Teknisi'
+      teknisi_nama: techName
     });
+
+    // Notifikasi ke Grup Telegram Bot @sto_pyk_bot (Asinkron / Non-blocking)
+    try {
+      const claimText = `👷 <b>[TIKET DIAMBIL TEKNISI LAPANGAN]</b>\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `🎫 <b>No. Tiket:</b> #${parsedTugasId} (${targetTask.jenis_kerja || 'Pekerjaan'})\n` +
+        `👷 <b>Teknisi Pelaksana:</b> ${techName}\n` +
+        `📍 <b>Lokasi:</b> ${targetTask.lokasi || '-'}\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `👉 <i>Teknisi sedang menyiapkan permohonan material dan menuju Gudang STO untuk pengambilan barang.</i>`;
+
+      fetch('https://api.telegram.org/bot8893464249:AAFhp-jmadAfKHrYfM56EzWyLN2d9_iaMm4/sendMessage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: '-1003981401195', text: claimText, parse_mode: 'HTML' })
+      }).catch(() => {});
+    } catch (_) {}
+
     showToast(`Tiket #${parsedTugasId} berhasil Anda ambil! Segera ajukan permohonan material ke gudang.`, 'success');
     return true;
   };
@@ -635,29 +691,19 @@ export function AppProvider({ children }) {
       return t;
     }));
 
-    // 1. Sync ke Express Backend API (AGAR MENTRIGGER NOTIFIKASI TELEGRAM KE GRUP GUDANG!)
-    try {
-      await api.post('/permohonan', {
-        tugas_id: parsedTugasId,
-        barang: (items || []).map(i => ({
-          barang_id: parseInt(i.barang_id, 10),
-          jumlah_minta: parseInt(i.jumlah_minta, 10) || 1
-        })),
-        teknisi_nama: currentUser?.nama_lengkap || 'Teknisi Lapangan'
-      });
-    } catch (apiErr) {
-      console.warn('[requestMaterial] Backend notice:', apiErr.message);
-    }
-
-    // 2. Sync ke Supabase
+    // 1. Simpan langsung ke Supabase (status Pending siap dirilis Gudang)
+    let realPId = newPermohonanId;
     if (isSupabaseConfigured()) {
       try {
         const { data: pData } = await supabase.from('permohonan').insert([{
           tugas_id: parsedTugasId,
-          status: 'menunggu'
+          status: 'Pending'
         }]).select();
 
-        const realPId = pData && pData.length > 0 ? pData[0].id : newPermohonanId;
+        if (pData && pData.length > 0) {
+          realPId = pData[0].id;
+          setPermohonan(prev => prev.map(p => p.id === newPermohonanId ? { ...p, id: realPId } : p));
+        }
 
         const detailsToInsert = items.map(item => ({
           permohonan_id: realPId,
@@ -667,11 +713,51 @@ export function AppProvider({ children }) {
         await supabase.from('detail_permohonan').insert(detailsToInsert);
         await supabase.from('tugas').update({ status: 'Progress' }).eq('id', parsedTugasId);
       } catch (err) {
-        console.warn('Supabase request material error:', err);
+        console.warn('Supabase request material notice:', err);
       }
     }
 
-    showToast(`Permohonan material #${newPermohonanId} diajukan ke Pimpinan untuk persetujuan!`, "info");
+    // 2. Supabase Realtime WebSocket Broadcast ke Petugas Gudang & Pimpinan
+    broadcastLiveSignal('permohonan_baru', {
+      ...newPermohonan,
+      id: realPId,
+      teknisi_nama: currentUser?.nama_lengkap || 'Teknisi Lapangan',
+      items
+    });
+
+    // 3. Notifikasi Telegram ke Grup Gudang
+    try {
+      const parentTask = tugas.find(t => Number(t.id) === parsedTugasId);
+      const itemListText = items.map(i => `• ${i.nama_barang || 'Barang ID: ' + i.barang_id}: ${i.jumlah_minta} ${i.satuan || 'pcs'}`).join('\n');
+      const textGudang = `📦 <b>[LOGISTIK GUDANG STO PAYAKUMBUH]</b>\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `📋 <b>PERMOHONAN MATERIAL DARI TEKNISI</b>\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `👷 <b>Teknisi:</b> ${currentUser?.nama_lengkap || 'Teknisi Lapangan'}\n` +
+        `🎫 <b>Untuk Tiket:</b> #${parsedTugasId} (${parentTask?.jenis_kerja || 'Pekerjaan'})\n` +
+        `📍 <b>Lokasi:</b> ${parentTask?.lokasi || '-'}\n` +
+        `📦 <b>Daftar Barang yang Diminta:</b>\n${itemListText}\n` +
+        (catatan ? `📝 <b>Catatan:</b> ${catatan}\n` : '') +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `👉 <i>Silakan buka aplikasi Gudang untuk merilis barang fisik ke teknisi.</i>`;
+
+      fetch('https://api.telegram.org/bot8893464249:AAFhp-jmadAfKHrYfM56EzWyLN2d9_iaMm4/sendMessage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: '-1003981401195', text: textGudang, parse_mode: 'HTML' })
+      }).catch(() => {});
+    } catch (_) {}
+
+    // 4. Fire-and-forget ke backend API lokal jika ada
+    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+      api.post('/permohonan', {
+        tugas_id: parsedTugasId,
+        barang: (items || []).map(i => ({ barang_id: parseInt(i.barang_id, 10), jumlah_minta: parseInt(i.jumlah_minta, 10) || 1 })),
+        teknisi_nama: currentUser?.nama_lengkap || 'Teknisi Lapangan'
+      }).catch(() => {});
+    }
+
+    showToast(`Permohonan material #${realPId} berhasil diajukan ke Gudang STO!`, "success");
   };
 
   // SOP 3: Pimpinan memberikan persetujuan (approval)
@@ -728,7 +814,7 @@ export function AppProvider({ children }) {
   };
 
   // SOP 4: Gudang merilis barang dan sistem melakukan pemotongan stok otomatis
-  const releaseMaterial = async (permohonanId) => {
+  const releaseMaterial = async (permohonanId, sn = null) => {
     const parsedId = parseInt(permohonanId, 10);
     const targetPermohonan = permohonan.find(p => Number(p.id) === parsedId);
     if (!targetPermohonan) return;
@@ -770,11 +856,29 @@ export function AppProvider({ children }) {
           return {
             ...t,
             material_status: 'Dalam Perjalanan',
-            status_detail: 'Dalam Perjalanan (Menuju Lokasi Pelanggan)'
+            status_detail: 'Dalam Perjalanan (Menuju Lokasi Pelanggan)',
+            ...(sn ? { sn_ont: sn } : {})
           };
         }
         return t;
       }));
+    }
+
+    if (sn) {
+      try {
+        const storedOnts = JSON.parse(localStorage.getItem('sto_ont_serials') || '[]');
+        if (!storedOnts.some(s => s.sn === sn)) {
+          storedOnts.push({
+            id: `ONT-TRANS-${parsedId}`,
+            sn,
+            model: 'Modem ONT ZTE F670L Dual Band',
+            status: 'Di Perjalanan',
+            pelanggan: targetPermohonan?.pelanggan_nama || 'Pelanggan STO',
+            tugas_id: targetPermohonan?.tugas_id
+          });
+          localStorage.setItem('sto_ont_serials', JSON.stringify(storedOnts));
+        }
+      } catch (_) {}
     }
 
     // 1. Sync ke backend Express API
@@ -920,7 +1024,19 @@ export function AppProvider({ children }) {
       }
     }
 
-    showToast(`Tiket #${parsedTugasId} berhasil di-closing! Material resmi berstatus TERPASANG DI PELANGGAN & BASTP diterbitkan.`, "success");
+    // Update status serial number ONT di penyimpanan lokal agar statusnya otomatis Terpasang
+    try {
+      const storedOnts = JSON.parse(localStorage.getItem('sto_ont_serials') || '[]');
+      const updatedOnts = storedOnts.map(s => {
+        if (s.sn === snOnt) {
+          return { ...s, status: 'Terpasang', pelanggan: pelangganNama || 'Pelanggan STO', tugas_id: parsedTugasId };
+        }
+        return s;
+      });
+      localStorage.setItem('sto_ont_serials', JSON.stringify(updatedOnts));
+    } catch (_) {}
+
+    showToast(`Tiket #${parsedTugasId} berhasil diselesaikan! Status ONT ${snOnt} di gudang otomatis menjadi TERPASANG.`, "success");
     return bastpData;
   };
 
@@ -1107,6 +1223,23 @@ export function AppProvider({ children }) {
       checkin: { lat, lng, time: waktu, verified: true }
     } : t));
 
+    if (isSupabaseConfigured()) {
+      try {
+        await supabase.from('tugas').update({
+          status: 'Progress',
+          catatan: `GPS Aktif: Sudah sampai di lokasi kerja (${lat.toFixed(4)}, ${lng.toFixed(4)}) pk ${waktu}`
+        }).eq('id', parsedId);
+      } catch (_) {}
+    }
+
+    broadcastLiveSignal('teknisi_checkin', {
+      tugas_id: parsedId,
+      lat,
+      lng,
+      waktu,
+      teknisi_nama: currentUser?.nama_lengkap || 'Teknisi Lapangan'
+    });
+
     try {
       await api.post(`/tugas/${parsedId}/checkin`, {
         latitude: lat,
@@ -1117,7 +1250,7 @@ export function AppProvider({ children }) {
       console.warn('[checkInTugas] API notice:', apiErr.message);
     }
 
-    showToast(`Check-In berhasil diverifikasi di koordinat (${lat.toFixed(4)}, ${lng.toFixed(4)}) pada ${waktu}!`, 'success');
+    showToast(`GPS Aktif Terverifikasi! Anda telah sampai di lokasi kerja (${lat.toFixed(4)}, ${lng.toFixed(4)}) pk ${waktu}.`, 'success');
   };
 
   const closeTugas = async (id, closingData = {}) => {

@@ -84,12 +84,12 @@ export default function DashboardTeknisi() {
   const [bastpModalTask, setBastpModalTask] = useState(null);
   
   // Filter daftar tugas:
-  // 1. Tiket terbuka yang disiarkan Pimpinan (belum diambil teknisi mana pun)
+  // 1. Tiket terbuka yang disiarkan Pimpinan (pool terbuka atau siapapun teknisi dapat mengambil)
   const openTasks = tugas.filter(t => {
-    const noTeknisi = !t.teknisi_id || t.teknisi_id === null || t.teknisi_id === 0 || t.teknisi_id === 'null' || t.teknisi_id === '0';
+    const isPool = !t.teknisi_id || Number(t.teknisi_id) === 99 || Number(t.teknisi_id) === 0 || t.teknisi_id === 'null' || t.teknisi_id === '0';
     const st = String(t.status || '').toLowerCase().trim();
     const isOpen = st === 'open' || st === 'menunggu' || st === '' || st === 'open pool' || st === 'pending';
-    return noTeknisi && isOpen;
+    return isPool && isOpen;
   });
 
   // 2. Tiket yang diambil oleh teknisi ini
@@ -374,51 +374,65 @@ export default function DashboardTeknisi() {
                                 </div>
                               )}
 
-                              {/* Tombol Aksi Utama Berdasarkan Tahapan */}
-                              <div>
+                              {/* Tombol Aksi Utama Berdasarkan Alur SOP */}
+                              <div className="space-y-2">
                                 {!taskPerm && (
                                   <button
                                     onClick={() => setModalTugasId(t.id)}
                                     className="w-full py-2.5 px-3 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow flex items-center justify-center gap-2 transition active:scale-95 cursor-pointer"
                                   >
                                     <Package className="w-4 h-4" />
-                                    <span>📦 Ajukan Kebutuhan Material ke Pimpinan</span>
+                                    <span>📦 Isi & Ajukan Kebutuhan Material ke Gudang</span>
                                   </button>
                                 )}
-                                {isPending && (
-                                  <button
-                                    onClick={() => setModalTugasId(t.id)}
-                                    className="w-full py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs border border-slate-700 flex items-center justify-center gap-2 transition active:scale-95 cursor-pointer"
-                                  >
-                                    <Eye className="w-4 h-4" />
-                                    <span>Tinjau / Tambah Item Material</span>
-                                  </button>
+
+                                {taskPerm && !isReleased && (
+                                  <div className="space-y-2">
+                                    <div className="flex gap-2">
+                                      <button
+                                        onClick={() => showToast('Permohonan telah diteruskan ke Gudang STO Payakumbuh. Silakan temui petugas logistik untuk serah terima barang.', 'info')}
+                                        className="flex-1 py-2.5 px-3 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow flex items-center justify-center gap-2 transition active:scale-95 cursor-pointer"
+                                      >
+                                        <Package className="w-4 h-4" />
+                                        <span>🏢 Status: Menunggu Serah Terima di Gudang</span>
+                                      </button>
+                                    </div>
+                                    <button
+                                      onClick={() => setActiveMenu('cetak-surat')}
+                                      className="w-full py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs border border-slate-700 flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer"
+                                    >
+                                      <Printer className="w-3.5 h-3.5 text-slate-400" />
+                                      <span>🖨️ Cetak Surat Permohonan (Pilihan / Opsional)</span>
+                                    </button>
+                                  </div>
                                 )}
-                                {isApproved && !isReleased && (
-                                  <button
-                                    onClick={() => showToast('Permohonan telah disetujui Pimpinan! Silakan temui Petugas Gudang STO Payakumbuh untuk serah terima barang.', 'info')}
-                                    className="w-full py-2.5 px-3 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow flex items-center justify-center gap-2 transition active:scale-95 cursor-pointer"
-                                  >
-                                    <Package className="w-4 h-4" />
-                                    <span>🏢 Ambil Barang ke Gudang STO</span>
-                                  </button>
-                                )}
+
                                 {isReleased && !isCheckedIn && (
-                                  <button
-                                    onClick={() => handleDoCheckIn(t)}
-                                    className="w-full py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow flex items-center justify-center gap-2 transition active:scale-95 cursor-pointer"
-                                  >
-                                    <MapPin className="w-4 h-4 text-amber-300 animate-pulse" />
-                                    <span>📍 Tiba di Lokasi Pelanggan (Check-In)</span>
-                                  </button>
+                                  <div className="space-y-2">
+                                    <button
+                                      onClick={() => handleDoCheckIn(t)}
+                                      className="w-full py-3 px-4 rounded-xl bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs shadow-lg shadow-blue-900/40 flex items-center justify-center gap-2 transition active:scale-95 cursor-pointer animate-pulse"
+                                    >
+                                      <MapPin className="w-4 h-4 text-amber-300" />
+                                      <span>📍 GPS AKTIF: SAYA SUDAH SAMPAI DI LOKASI KERJA</span>
+                                    </button>
+                                    <button
+                                      onClick={() => setActiveMenu('cetak-surat')}
+                                      className="w-full py-1.5 px-3 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-400 font-medium text-[11px] flex items-center justify-center gap-1.5 transition cursor-pointer"
+                                    >
+                                      <Printer className="w-3 h-3" />
+                                      <span>Cetak Surat Jalan / Bukti Gudang (Opsional)</span>
+                                    </button>
+                                  </div>
                                 )}
+
                                 {isCheckedIn && (
                                   <button
                                     onClick={() => setUploadTugasId(t.id)}
-                                    className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow flex items-center justify-center gap-2 transition active:scale-95 cursor-pointer"
+                                    className="w-full py-3 px-4 rounded-xl bg-linear-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs shadow-lg shadow-emerald-900/40 flex items-center justify-center gap-2 transition active:scale-95 cursor-pointer"
                                   >
                                     <Camera className="w-4 h-4" />
-                                    <span>✅ Selesaikan Pekerjaan & BASTP Digital</span>
+                                    <span>📸 AMBIL FOTO SELESAI & SCAN SERIAL NUMBER ONT (BASTP)</span>
                                   </button>
                                 )}
                               </div>

@@ -42,6 +42,7 @@ export default function ModernSidebar({ activeTab, onTabChange }) {
   // Badge calculations
   const pendingApprovalCount = permohonan.filter(p => p.status === 'Pending').length;
   const approvedForReleaseCount = permohonan.filter(p => p.status === 'Approved').length;
+  const pendingGudangCount = permohonan.filter(p => p.status !== 'Released' && p.status !== 'Rejected' && p.status !== 'Batal').length;
   const assignedTechTickets = tugas.filter(t => t.teknisi_id === currentUser?.id && t.status !== 'Done').length;
   const lowStockCount = barang.filter(b => b.stok <= 20).length;
 
@@ -90,7 +91,7 @@ export default function ModernSidebar({ activeTab, onTabChange }) {
             key: 'output-barang',
             label: 'Output Barang (Rilis / Serah Terima)',
             icon: Send,
-            badge: approvedForReleaseCount > 0 ? approvedForReleaseCount : null,
+            badge: pendingGudangCount > 0 ? pendingGudangCount : null,
             badgeColor: 'bg-amber-500 text-white'
           },
           {

@@ -75,20 +75,20 @@ export default function GudangDashboard() {
     }
   }, [navigate]);
 
-  // Approved Permohonan awaiting release from warehouse (SOP 4)
-  const approvedRequests = permohonan.filter(p => p.status === 'Approved').map(p => {
-    const parentTask = tugas.find(t => t.id === p.tugas_id);
-    const tech = users.find(u => u.id === parentTask?.teknisi_id);
-    const details = detailPermohonan.filter(d => d.permohonan_id === p.id).map(d => {
-      const item = barang.find(b => b.id === d.barang_id);
+  // Permohonan material masuk dari teknisi yang siap diserahkan oleh petugas gudang
+  const approvedRequests = permohonan.filter(p => p.status !== 'Released' && p.status !== 'Rejected' && p.status !== 'Batal').map(p => {
+    const parentTask = tugas.find(t => Number(t.id) === Number(p.tugas_id));
+    const tech = users.find(u => Number(u.id) === Number(parentTask?.teknisi_id)) || { nama_lengkap: p.teknisi_nama || 'Teknisi Lapangan' };
+    const details = detailPermohonan.filter(d => Number(d.permohonan_id) === Number(p.id)).map(d => {
+      const item = barang.find(b => Number(b.id) === Number(d.barang_id));
       return {
         ...d,
         item,
-        isStockEnough: item ? item.stok >= d.jumlah_minta : false
+        isStockEnough: item ? Number(item.stok) >= Number(d.jumlah_minta) : false
       };
     });
 
-    const canRelease = details.every(d => d.isStockEnough);
+    const canRelease = details.length > 0 ? details.every(d => d.isStockEnough) : true;
 
     return {
       ...p,
@@ -414,6 +414,33 @@ export default function GudangDashboard() {
             </div>
           </div>
 
+          {/* Alert Notifikasi Permohonan Masuk dari Teknisi */}
+          {approvedRequests.length > 0 && (
+            <div className="p-4 rounded-3xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md animate-in fade-in">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-500 border border-amber-500/30 flex items-center justify-center shrink-0">
+                  <Send className="w-5 h-5 animate-pulse" />
+                </div>
+                <div>
+                  <div className="text-xs font-black text-amber-400">
+                    Notifikasi Permohonan Material Masuk ({approvedRequests.length} Permohonan dari Teknisi)
+                  </div>
+                  <div className="text-[11px] text-slate-300 mt-0.5">
+                    Teknisi <strong>{approvedRequests[0]?.tech?.nama_lengkap || 'Teknisi'}</strong> mengajukan kebutuhan barang untuk Tiket #{approvedRequests[0]?.tugas_id}.
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveMenu('output-barang')}
+                className="px-4 py-2 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs shrink-0 cursor-pointer transition shadow active:scale-95 flex items-center justify-center gap-1.5"
+              >
+                <span>Buka Menu Output Barang</span>
+                <Send className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
           {/* KPI Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <div className={`${isDark ? 'bg-slate-900/80 border-slate-800' : 'bg-white border-slate-200 shadow-sm'} border rounded-2xl p-4 flex items-center justify-between`}>
@@ -500,8 +527,12 @@ export default function GudangDashboard() {
                             Tiket #{req.tugas_id} - {req.parentTask?.jenis_kerja}
                           </div>
                         </div>
-                        <span className="text-[10px] font-bold px-2 py-1 bg-amber-500/20 text-amber-500 rounded-full border border-amber-500/30">
-                          Disetujui Pimpinan
+                        <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${
+                          req.status === 'Approved'
+                            ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                            : 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+                        }`}>
+                          {req.status === 'Approved' ? 'Disetujui Pimpinan' : 'Permohonan Baru dari Teknisi'}
                         </span>
                       </div>
 
@@ -561,8 +592,8 @@ export default function GudangDashboard() {
                         </div>
                       )}
 
-                      {/* Release Button */}
-                      <div className="pt-2">
+                      {/* Release Button & Optional Cetak Surat Jalan */}
+                      <div className="pt-2 space-y-2">
                         <button
                           onClick={() => handleRelease(req.id)}
                           disabled={!req.canRelease}
@@ -573,7 +604,15 @@ export default function GudangDashboard() {
                           }`}
                         >
                           <CheckCircle2 className="w-4 h-4" />
-                          <span>{req.canRelease ? '📦 Serahkan Barang ke Teknisi' : 'Stok Gudang Tidak Cukup'}</span>
+                          <span>{req.canRelease ? '📦 Serahkan & Rilis Barang ke Teknisi' : 'Stok Gudang Tidak Cukup'}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setActiveMenu('cetak-surat-jalan')}
+                          className="w-full py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs border border-slate-700 flex items-center justify-center gap-1.5 transition cursor-pointer"
+                        >
+                          <FileText className="w-3.5 h-3.5" />
+                          <span>🖨️ Cetak Surat Jalan / Tanda Terima (Opsional)</span>
                         </button>
                       </div>
                     </div>

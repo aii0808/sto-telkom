@@ -12,9 +12,10 @@ import {
 
 function FormTugas() {
   const { isDark } = useTheme();
-  const { createTugas, odp = [], showToast } = useApp();
+  const { createTugas, odp = [], users = [], showToast } = useApp();
 
   const [jenisKerja, setJenisKerja] = useState('Kabel Dropcore Putus');
+  const [selectedTeknisiId, setSelectedTeknisiId] = useState('99');
   const [selectedOdpId, setSelectedOdpId] = useState('');
   const [pelangganNama, setPelangganNama] = useState('');
   const [pelangganTelp, setPelangganTelp] = useState('');
@@ -57,9 +58,10 @@ function FormTugas() {
       kode_odp: 'ODP-PYK-01/04'
     };
 
+    const assignedId = selectedTeknisiId && selectedTeknisiId !== '99' ? Number(selectedTeknisiId) : 99;
     const taskPayload = {
       pimpinan_id: user.id || 1,
-      teknisi_id: null, // Open Pool Telegram: Terbuka untuk diambil siapapun teknisi siaga di grup
+      teknisi_id: assignedId,
       jenis_kerja: jenisKerja,
       pelanggan_nama: pelangganNama || 'Pelanggan IndiHome Payakumbuh',
       pelanggan_telp: pelangganTelp || '0812-6789-0123',
@@ -162,7 +164,7 @@ function FormTugas() {
           <div>
             <label className={`block font-bold mb-1.5 ${isDark ? 'text-slate-300' : 'text-slate-700'} flex items-center justify-between`}>
               <span>Acuan Titik ODP Jaringan *</span>
-              <span className="text-[10px] text-emerald-400 font-mono font-bold">Sinkron Supabase</span>
+              <span className="text-[10px] text-emerald-400 font-mono font-bold">Sinkron Database</span>
             </label>
             <select
               value={selectedOdpId}
@@ -181,6 +183,30 @@ function FormTugas() {
             </select>
           </div>
 
+        </div>
+
+        {/* Teknisi Ditugaskan (Pilihan Terbuka / Khusus) */}
+        <div>
+          <label className={`block font-bold mb-1.5 ${isDark ? 'text-slate-300' : 'text-slate-700'} flex items-center justify-between`}>
+            <span>Teknisi Lapangan yang Ditugaskan *</span>
+            <span className="text-[10px] text-blue-400 font-mono">Bisa Dipilih Khusus / Terbuka</span>
+          </label>
+          <select
+            value={selectedTeknisiId}
+            onChange={(e) => setSelectedTeknisiId(e.target.value)}
+            className={`w-full p-3 rounded-2xl border outline-none transition cursor-pointer font-semibold ${
+              isDark
+                ? 'bg-slate-950 border-slate-700 text-white focus:border-rose-500'
+                : 'bg-white border-slate-300 text-slate-900 focus:border-rose-500'
+            }`}
+          >
+            <option value="99">📢 Siaga Terbuka (Siapapun Teknisi Lapangan Dapat Mengambil Tiket)</option>
+            {users.filter(u => u.role === 'teknisi' && Number(u.id) !== 99).map(tech => (
+              <option key={tech.id} value={tech.id}>
+                👷 {tech.nama_lengkap} ({tech.email})
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* Lokasi / Alamat */}
@@ -271,7 +297,7 @@ function FormTugas() {
           ) : (
             <>
               <Send className="w-4 h-4" />
-              <span>🚀 Terbitkan & Siarkan Tiket ke Seluruh Teknisi</span>
+              <span>🚀 Terbitkan Tiket (Siarkan ke Aplikasi & Telegram)</span>
             </>
           )}
         </button>
