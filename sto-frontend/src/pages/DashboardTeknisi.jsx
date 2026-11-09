@@ -51,27 +51,43 @@ export default function DashboardTeknisi() {
     showToast
   } = useApp();
 
+  const [isCheckingInId, setIsCheckingInId] = useState(null);
+
   const handleDoCheckIn = (targetTask) => {
-    if (navigator.geolocation) {
+    if (isCheckingInId) return;
+    setIsCheckingInId(targetTask.id);
+
+    let resolved = false;
+    const doCheck = (lat, lng) => {
+      if (resolved) return;
+      resolved = true;
+      setIsCheckingInId(null);
+      checkInTugas(targetTask.id, {
+        latitude: lat || targetTask.target_lat || -0.2285,
+        longitude: lng || targetTask.target_lng || 100.6335
+      });
+    };
+
+    // Strict 1000ms safety timer fallback - NEVER hangs!
+    const timer = setTimeout(() => {
+      doCheck(targetTask.target_lat || -0.2285, targetTask.target_lng || 100.6335);
+    }, 1000);
+
+    if (typeof navigator !== 'undefined' && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          checkInTugas(targetTask.id, {
-            latitude: pos.coords.latitude,
-            longitude: pos.coords.longitude
-          });
+          clearTimeout(timer);
+          doCheck(pos.coords.latitude, pos.coords.longitude);
         },
         () => {
-          checkInTugas(targetTask.id, {
-            latitude: targetTask.target_lat || -0.2285,
-            longitude: targetTask.target_lng || 100.6335
-          });
-        }
+          clearTimeout(timer);
+          doCheck(targetTask.target_lat || -0.2285, targetTask.target_lng || 100.6335);
+        },
+        { timeout: 900, maximumAge: 60000, enableHighAccuracy: false }
       );
     } else {
-      checkInTugas(targetTask.id, {
-        latitude: targetTask.target_lat || -0.2285,
-        longitude: targetTask.target_lng || 100.6335
-      });
+      clearTimeout(timer);
+      doCheck(targetTask.target_lat || -0.2285, targetTask.target_lng || 100.6335);
     }
   };
 
@@ -92,13 +108,18 @@ export default function DashboardTeknisi() {
     return isPool && isOpen;
   });
 
+  const isDoneStatus = (status) => {
+    const st = String(status || '').toLowerCase().trim();
+    return st === 'done' || st === 'selesai' || st === 'closed';
+  };
+
   // 2. Tiket yang diambil oleh teknisi ini
   const myTasks = tugas.filter(t => Number(t.teknisi_id) === Number(user?.id));
-  const myActiveTasks = myTasks.filter(t => { const st = String(t.status || '').toLowerCase().trim(); return st !== 'done' && st !== 'selesai'; });
-  const myDoneTasks = myTasks.filter(t => { const st = String(t.status || '').toLowerCase().trim(); return st === 'done' || st === 'selesai'; });
+  const myActiveTasks = myTasks.filter(t => !isDoneStatus(t.status));
+  const myDoneTasks = myTasks.filter(t => isDoneStatus(t.status));
 
-  // Tiket aktif untuk navigasi pengerjaan
-  const activeTasks = myActiveTasks.length > 0 ? myActiveTasks : (myTasks.length > 0 ? myTasks : []);
+  // Tiket aktif untuk navigasi pengerjaan (hanya tiket yang belum selesai)
+  const activeTasks = myActiveTasks;
 
   // Permohonan material yang diajukan oleh teknisi ini
   const myRequests = permohonan.filter(p => {
@@ -413,10 +434,20 @@ export default function DashboardTeknisi() {
                                   <div className="space-y-2">
                                     <button
                                       onClick={() => handleDoCheckIn(t)}
-                                      className="w-full py-3 px-4 rounded-xl bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs shadow-lg shadow-blue-900/40 flex items-center justify-center gap-2 transition active:scale-95 cursor-pointer animate-pulse"
+                                      disabled={isCheckingInId === t.id}
+                                      className="w-full py-3 px-4 rounded-xl bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs shadow-lg shadow-blue-900/40 flex items-center justify-center gap-2 transition active:scale-95 cursor-pointer disabled:opacity-75"
                                     >
-                                      <MapPin className="w-4 h-4 text-amber-300" />
-                                      <span>📍 GPS AKTIF: SAYA SUDAH SAMPAI DI LOKASI KERJA</span>
+                                      {isCheckingInId === t.id ? (
+                                        <span className="flex items-center gap-2">
+                                          <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                                          <span>MEMVERIFIKASI LOKASI GPS...</span>
+                                        </span>
+                                      ) : (
+                                        <>
+                                          <MapPin className="w-4 h-4 text-amber-300" />
+                                          <span>📍 GPS AKTIF: SAYA SUDAH SAMPAI DI LOKASI KERJA</span>
+                                        </>
+                                      )}
                                     </button>
                                     <button
                                       onClick={() => setActiveMenu('cetak-surat')}

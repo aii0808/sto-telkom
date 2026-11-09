@@ -148,7 +148,7 @@ export default function UploadBuktiModal({ tugasId, onClose, onSuccess }) {
     }));
   };
 
-  // Handler upload file lokal
+  // Handler upload file lokal dengan kompresi data URL universal
   const handleFileChange = (e) => {
     const selected = e.target.files[0];
     if (!selected) return;
@@ -157,7 +157,41 @@ export default function UploadBuktiModal({ tugasId, onClose, onSuccess }) {
       return;
     }
     setFile(selected);
-    setPreview(URL.createObjectURL(selected));
+    try {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+            const maxDim = 800;
+            if (width > maxDim || height > maxDim) {
+              if (width > height) {
+                height = Math.round((height * maxDim) / width);
+                width = maxDim;
+              } else {
+                width = Math.round((width * maxDim) / height);
+                height = maxDim;
+              }
+            }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+            setPreview(dataUrl);
+          } catch (_) {
+            setPreview(ev.target.result);
+          }
+        };
+        img.src = ev.target.result;
+      };
+      reader.readAsDataURL(selected);
+    } catch (_) {
+      setPreview(URL.createObjectURL(selected));
+    }
   };
 
   // Validasi kualitas redaman optik (Standar Telkom Regional: -16.0 s/d -24.0 dBm)
