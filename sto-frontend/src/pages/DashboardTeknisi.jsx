@@ -107,11 +107,22 @@ export default function DashboardTeknisi() {
   });
 
   const handleSetActiveMenu = (tab) => {
-    handleSetActiveMenu(tab);
+    setActiveMenu(tab);
     try {
       localStorage.setItem('sto_active_tab_teknisi', tab);
     } catch {}
   };
+
+  // Reset tab ke tiket jika logo diklik
+  useEffect(() => {
+    const handleReset = (e) => {
+      if (!e.detail?.role || e.detail.role === 'teknisi') {
+        setActiveMenu('tiket');
+      }
+    };
+    window.addEventListener('sto:reset-dashboard-tab', handleReset);
+    return () => window.removeEventListener('sto:reset-dashboard-tab', handleReset);
+  }, []);
   const [modalTugasId, setModalTugasId] = useState(null);
   const [uploadTugasId, setUploadTugasId] = useState(null);
   const [bastpModalTask, setBastpModalTask] = useState(null);

@@ -58,7 +58,7 @@ export default function SplashScreen({ onFinish, duration = 1800 }) {
         <div className="absolute w-36 h-36 rounded-full border border-blue-500/40 animate-pulse pointer-events-none" />
 
         {/* High-Tech Corporate Logo */}
-        <BrandLogo size="xl" className="transform scale-125" />
+        <BrandLogo size="xl" className="transform scale-125" clickable={false} />
       </div>
 
       {/* Text Branding */}

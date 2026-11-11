@@ -61,11 +61,22 @@ export default function GudangDashboard() {
   });
 
   const handleSetActiveMenu = (tab) => {
-    handleSetActiveMenu(tab);
+    setActiveMenu(tab);
     try {
       localStorage.setItem('sto_active_tab_gudang', tab);
     } catch {}
   };
+
+  // Reset tab ke daftar stok barang jika logo diklik
+  useEffect(() => {
+    const handleReset = (e) => {
+      if (!e.detail?.role || e.detail.role === 'gudang') {
+        setActiveMenu('daftar-barang');
+      }
+    };
+    window.addEventListener('sto:reset-dashboard-tab', handleReset);
+    return () => window.removeEventListener('sto:reset-dashboard-tab', handleReset);
+  }, []);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [ontSearchQuery, setOntSearchQuery] = useState('');

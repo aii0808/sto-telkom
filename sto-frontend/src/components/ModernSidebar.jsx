@@ -178,11 +178,21 @@ export default function ModernSidebar({ activeTab, onTabChange }) {
     setMobileOpen(false);
   };
 
+  const handleLogoClick = () => {
+    const defaultTab = currentRole === 'teknisi' ? 'tiket' : currentRole === 'gudang' ? 'daftar-barang' : 'dashboard';
+    if (onTabChange) {
+      onTabChange(defaultTab);
+    }
+    setMobileOpen(false);
+    const targetRoute = currentRole === 'teknisi' ? '/dashboard-teknisi' : currentRole === 'gudang' ? '/dashboard-gudang' : '/dashboard-pimpinan';
+    navigate(targetRoute);
+  };
+
   return (
     <>
       {/* Mobile Top Header with Hamburger Button */}
       <div className={`lg:hidden flex items-center justify-between px-4 py-3 border-b ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'} sticky top-0 z-30 shadow-sm`}>
-        <BrandLogo size="sm" />
+        <BrandLogo size="sm" onClick={handleLogoClick} />
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
           className={`p-2 rounded-xl ${isDark ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-800'} transition active:scale-95`}
@@ -212,7 +222,7 @@ export default function ModernSidebar({ activeTab, onTabChange }) {
       >
         {/* Sidebar Header */}
         <div className={`flex items-center justify-between p-4 border-b ${isDark ? 'border-slate-800/80' : 'border-slate-200'} h-16`}>
-          <BrandLogo size="md" collapsed={collapsed} />
+          <BrandLogo size="md" collapsed={collapsed} onClick={handleLogoClick} />
 
           {/* Collapse Button on Desktop */}
           <button

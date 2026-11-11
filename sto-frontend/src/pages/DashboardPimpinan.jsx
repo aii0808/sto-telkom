@@ -72,11 +72,22 @@ function DashboardPimpinan() {
   });
 
   const handleSetActiveMenu = (tab) => {
-    handleSetActiveMenu(tab);
+    setActiveMenu(tab);
     try {
       localStorage.setItem('sto_active_tab_pimpinan', tab);
     } catch {}
   };
+
+  // Reset tab ke overview dashboard jika logo diklik
+  useEffect(() => {
+    const handleReset = (e) => {
+      if (!e.detail?.role || e.detail.role === 'pimpinan') {
+        setActiveMenu('dashboard');
+      }
+    };
+    window.addEventListener('sto:reset-dashboard-tab', handleReset);
+    return () => window.removeEventListener('sto:reset-dashboard-tab', handleReset);
+  }, []);
 
   const [showCreateTaskModal, setShowCreateTaskModal] = useState(false);
   const [bastpModalTask, setBastpModalTask] = useState(null);
