@@ -35,7 +35,7 @@ export default function SplashScreen({ onFinish, duration = 1800 }) {
 
   return (
     <div
-      className={`fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-rose-950 text-white transition-opacity duration-300 ${
+      className={`fixed inset-0 z-99999 flex flex-col items-center justify-center bg-linear-to-br from-slate-950 via-slate-900 to-rose-950 text-white transition-opacity duration-300 ${
         isFadingOut ? 'opacity-0 pointer-events-none' : 'opacity-100'
       }`}
     >
@@ -82,9 +82,9 @@ export default function SplashScreen({ onFinish, duration = 1800 }) {
           <span className="text-rose-400 font-bold">{progress}%</span>
         </div>
 
-        <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden border border-slate-700/50 p-[1px]">
+        <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden border border-slate-700/50 p-px">
           <div
-            className="h-full bg-gradient-to-r from-rose-600 via-rose-500 to-amber-400 rounded-full transition-all duration-75 shadow-sm shadow-rose-500/50"
+            className="h-full bg-linear-to-r from-rose-600 via-rose-500 to-amber-400 rounded-full transition-all duration-75 shadow-sm shadow-rose-500/50"
             style={{ width: `${progress}%` }}
           />
         </div>

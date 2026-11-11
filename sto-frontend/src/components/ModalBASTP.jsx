@@ -74,7 +74,7 @@ export default function ModalBASTP({ task, onClose }) {
       }`}>
         
         {/* HEADER MODAL DENGAN TOMBOL PRINT */}
-        <div className="no-print flex items-center justify-between p-4 sm:p-5 border-b-2 border-slate-200 dark:border-slate-800 flex-shrink-0">
+        <div className="no-print flex items-center justify-between p-4 sm:p-5 border-b-2 border-slate-200 dark:border-slate-800 shrink-0">
           <div className="flex items-center gap-2.5">
             <span className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
               <ShieldCheck className="w-5 h-5" />
@@ -177,7 +177,7 @@ export default function ModalBASTP({ task, onClose }) {
                 </div>
                 <div className="flex justify-between border-b pb-1 border-slate-200 dark:border-slate-800/60">
                   <span className="text-slate-400">Alamat Lokasi:</span>
-                  <strong className="text-right max-w-[200px] truncate">{task.lokasi}</strong>
+                  <strong className="text-right max-w-50 truncate">{task.lokasi}</strong>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">Nomor Telepon:</span>
@@ -318,7 +318,7 @@ export default function ModalBASTP({ task, onClose }) {
             </div>
 
             <div className={`p-3.5 rounded-2xl border-2 ${isDark ? 'border-slate-800 bg-slate-950/40' : 'border-slate-300 bg-slate-50'} space-y-2`}>
-              <div className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Pimpinan STO / Asman</div>
+              <div className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Pimpinan STO </div>
               <div className="h-16 flex items-center justify-center border-y border-dashed border-slate-300 dark:border-slate-700 my-1 font-bold text-xs">
                 ( Ir. Bambang Hermanto )
               </div>

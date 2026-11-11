@@ -311,7 +311,7 @@ export default function Login({ onTriggerSplash }) {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="nama@sto.co.id"
+                    placeholder="nama@gmail.com"
                     className={`w-full pl-10 pr-3.5 py-3 rounded-2xl text-xs font-medium border outline-none transition ${
                       isDark
                         ? 'bg-slate-950/80 border-slate-700 text-white focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20'
