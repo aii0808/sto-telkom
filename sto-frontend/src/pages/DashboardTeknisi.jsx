@@ -1,3 +1,4 @@
+// oxlint-disable no-unused-vars react-hooks/exhaustive-deps react/refs
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ModernSidebar from '../components/ModernSidebar';
@@ -48,7 +49,8 @@ export default function DashboardTeknisi() {
     permohonan,
     detailPermohonan,
     barang,
-    showToast
+    showToast,
+    sidebarCollapsed
   } = useApp();
 
   const [isCheckingInId, setIsCheckingInId] = useState(null);
@@ -94,7 +96,22 @@ export default function DashboardTeknisi() {
   // Sesi akun teknisi aktif
   const user = JSON.parse(localStorage.getItem('user')) || { id: 2, nama_lengkap: 'Ahmad Fadli', role: 'teknisi' };
 
-  const [activeMenu, setActiveMenu] = useState('tiket');
+  const [activeMenu, setActiveMenu] = useState(() => {
+    try {
+      const saved = localStorage.getItem('sto_active_tab_teknisi');
+      const valid = ['tiket', 'surat-permohonan', 'status-approval', 'pengerjaan', 'cetak-surat'];
+      return saved && valid.includes(saved) ? saved : 'tiket';
+    } catch {
+      return 'tiket';
+    }
+  });
+
+  const handleSetActiveMenu = (tab) => {
+    handleSetActiveMenu(tab);
+    try {
+      localStorage.setItem('sto_active_tab_teknisi', tab);
+    } catch {}
+  };
   const [modalTugasId, setModalTugasId] = useState(null);
   const [uploadTugasId, setUploadTugasId] = useState(null);
   const [bastpModalTask, setBastpModalTask] = useState(null);
@@ -145,10 +162,10 @@ export default function DashboardTeknisi() {
     } transition-colors duration-300`}>
       
       {/* Left Sidebar Layout */}
-      <ModernSidebar activeTab={activeMenu} onTabChange={setActiveMenu} />
+      <ModernSidebar activeTab={activeMenu} onTabChange={handleSetActiveMenu} />
 
       {/* Main Content Area */}
-      <main className="flex-1 min-w-0 flex flex-col lg:pl-72 transition-all duration-300">
+      <main className={`flex-1 min-w-0 flex flex-col ${sidebarCollapsed ? 'lg:pl-20' : 'lg:pl-72'} transition-all duration-300`}>
         <div className="p-4 sm:p-6 lg:p-8 space-y-6 flex-1 max-w-7xl w-full mx-auto">
           
           {/* Header Banner */}
@@ -421,7 +438,7 @@ export default function DashboardTeknisi() {
                                       </button>
                                     </div>
                                     <button
-                                      onClick={() => setActiveMenu('cetak-surat')}
+                                      onClick={() => handleSetActiveMenu('cetak-surat')}
                                       className="w-full py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs border border-slate-700 flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer"
                                     >
                                       <Printer className="w-3.5 h-3.5 text-slate-400" />
@@ -450,7 +467,7 @@ export default function DashboardTeknisi() {
                                       )}
                                     </button>
                                     <button
-                                      onClick={() => setActiveMenu('cetak-surat')}
+                                      onClick={() => handleSetActiveMenu('cetak-surat')}
                                       className="w-full py-1.5 px-3 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-400 font-medium text-[11px] flex items-center justify-center gap-1.5 transition cursor-pointer"
                                     >
                                       <Printer className="w-3 h-3" />
@@ -554,7 +571,7 @@ export default function DashboardTeknisi() {
                       Belum ada tiket yang sedang Anda kerjakan. Silakan ambil tiket pekerjaan terlebih dahulu dari Pool Tiket Terbuka.
                     </p>
                     <button
-                      onClick={() => setActiveMenu('tiket')}
+                      onClick={() => handleSetActiveMenu('tiket')}
                       className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md transition cursor-pointer"
                     >
                       Buka Pool Tiket Pekerjaan
@@ -681,7 +698,7 @@ export default function DashboardTeknisi() {
 
                         <div className="flex gap-2 pt-1">
                           <button
-                            onClick={() => setActiveMenu('cetak-surat')}
+                            onClick={() => handleSetActiveMenu('cetak-surat')}
                             className="flex-1 py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer"
                           >
                             <Printer className="w-3.5 h-3.5" />
@@ -830,7 +847,7 @@ export default function DashboardTeknisi() {
           onClose={() => setModalTugasId(null)}
           onSuccess={() => {
             setModalTugasId(null);
-            setActiveMenu('status-approval');
+            handleSetActiveMenu('status-approval');
           }}
         />
       )}

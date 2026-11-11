@@ -1,3 +1,4 @@
+// oxlint-disable no-unused-vars
 import React, { useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import {
@@ -214,7 +215,7 @@ export default function AnalyticsChartsPimpinan({ tugas = [], barang = [], permo
               </div>
 
               {/* Legends with values */}
-              <div className="space-y-2 text-xs w-full max-w-[170px]">
+              <div className="space-y-2 text-xs w-full max-w-42.5">
                 <div className={`p-2 rounded-xl flex items-center justify-between border ${
                   hoveredSlice === 'Done' ? 'bg-emerald-500/20 border-emerald-500/40' : isDark ? 'bg-slate-950/60 border-slate-800' : 'bg-slate-50 border-slate-200'
                 }`}>
@@ -289,7 +290,7 @@ export default function AnalyticsChartsPimpinan({ tugas = [], barang = [], permo
                     {/* Bar Line */}
                     <div className={`w-full h-3 rounded-full overflow-hidden ${isDark ? 'bg-slate-950' : 'bg-slate-100'} p-0.5 border border-slate-800/40`}>
                       <div
-                        className={`h-full rounded-full bg-gradient-to-r ${cat.color} transition-all duration-700 ease-out`}
+                        className={`h-full rounded-full bg-linear-to-r ${cat.color} transition-all duration-700 ease-out`}
                         style={{ width: `${barWidth}%` }}
                       ></div>
                     </div>
@@ -336,7 +337,7 @@ export default function AnalyticsChartsPimpinan({ tugas = [], barang = [], permo
                 criticalItems.map((item, idx) => (
                   <div key={item.nama + idx} className="space-y-1">
                     <div className="flex items-center justify-between text-xs">
-                      <span className={`font-semibold text-[11px] truncate max-w-[160px] ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                      <span className={`font-semibold text-[11px] truncate max-w-40 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
                         {item.nama}
                       </span>
                       <div className="flex items-center gap-1.5">

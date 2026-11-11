@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Buku Panduan & Cetak Biru Alur Kerja STO Telkom Akses Indonesia</title>
+  <style>
+    :root {
+      --telkom-red: #e11d48;
+      --telkom-dark-red: #be123c;
+      --telkom-burgundy: #881337;
+      --slate-900: #0f172a;
+      --slate-800: #1e293b;
+      --slate-700: #334155;
+      --slate-600: #475569;
+      --slate-500: #64748b;
+      --slate-200: #e2e8f0;
+      --slate-100: #f1f5f9;
+      --slate-50: #f8fafc;
+      --emerald-600: #059669;
+      --blue-600: #2563eb;
+      --amber-500: #f59e0b;
+    }
+
+    @page {
+      size: A4;
+      margin: 12mm 15mm 12mm 15mm;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      color: var(--slate-800);
+      background-color: #f1f5f9;
+      line-height: 1.5;
+      font-size: 9.5pt;
+      margin: 0;
+      padding: 24px;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 36px 44px;
+      border-radius: 20px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+      border: 1px solid var(--slate-200);
+    }
+
+    /* KOP SURAT FORMAL */
+    .kop-surat {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 12px;
+      gap: 16px;
+    }
+
+    .kop-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .kop-logo {
+      width: 58px;
+      height: 58px;
+      background: linear-gradient(135deg, var(--telkom-red), var(--telkom-burgundy));
+      border-radius: 14px;
+      color: #ffffff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      box-shadow: 0 4px 10px rgba(225, 29, 72, 0.35);
+      border: 2px solid #fda4af;
+      flex-shrink: 0;
+    }
+
+    .kop-logo .ta-text {
+      font-size: 19pt;
+      line-height: 1;
+      letter-spacing: -1px;
+    }
+
+    .kop-logo .sub-text {
+      font-size: 6.5pt;
+      letter-spacing: 0.5px;
+      font-weight: 800;
+      opacity: 0.95;
+    }
+
+    .kop-titles h1 {
+      font-size: 13pt;
+      font-weight: 900;
+      color: var(--slate-900);
+      margin: 0;
+      text-transform: uppercase;
+      letter-spacing: -0.3px;
+    }
+
+    .kop-titles .branch {
+      font-size: 8.5pt;
+      font-weight: 800;
+      color: var(--telkom-red);
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      margin-top: 1px;
+    }
+
+    .kop-titles .address {
+      font-size: 7.8pt;
+      color: var(--slate-600);
+      margin-top: 2px;
+    }
+
+    .kop-right {
+      text-align: right;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 7.8pt;
+      border-left: 2px solid var(--telkom-red);
+      padding-left: 14px;
+    }
+
+    .kop-right .doc-no {
+      font-weight: 900;
+      color: var(--telkom-burgundy);
+      font-size: 8.5pt;
+    }
+
+    .kop-divider-thick {
+      height: 4px;
+      background: var(--telkom-red);
+      border-radius: 2px;
+      margin-top: 10px;
+    }
+
+    .kop-divider-thin {
+      height: 1px;
+      background: var(--slate-800);
+      margin-top: 2px;
+      margin-bottom: 22px;
+    }
+
+    /* ACTION BAR (SCREEN ONLY) */
+    .action-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--slate-50);
+      border: 1px solid var(--slate-200);
+      padding: 12px 18px;
+      border-radius: 14px;
+      margin-bottom: 24px;
+    }
+
+    .btn-print {
+      background: var(--telkom-red);
+      color: #ffffff;
+      border: none;
+      padding: 8px 18px;
+      border-radius: 10px;
+      font-weight: 800;
+      font-size: 9pt;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 10px rgba(225, 29, 72, 0.25);
+      transition: all 0.2s;
+    }
+
+    .btn-print:hover {
+      background: var(--telkom-dark-red);
+      transform: translateY(-1px);
+    }
+
+    .badge-live {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #ecfdf5;
+      color: var(--emerald-600);
+      border: 1px solid #a7f3d0;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 8pt;
+      font-weight: 800;
+      font-family: monospace;
+    }
+
+    .badge-live::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      background: #10b981;
+      border-radius: 50%;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(1.2); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    /* HEADINGS & SECTIONS */
+    h2.section-title {
+      font-size: 11pt;
+      font-weight: 900;
+      color: var(--slate-900);
+      border-left: 4px solid var(--telkom-red);
+      padding-left: 10px;
+      margin-top: 24px;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.2px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .section-title span.badge-num {
+      background: var(--slate-100);
+      color: var(--slate-600);
+      font-size: 7.5pt;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-weight: 700;
+    }
+
+    p {
+      margin: 0 0 10px 0;
+      color: #334155;
+      text-align: justify;
+    }
+
+    /* CARDS & GRIDS */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .card {
+      background: var(--slate-50);
+      border: 1px solid var(--slate-200);
+      border-radius: 14px;
+      padding: 14px;
+    }
+
+    .card.highlight {
+      border-left: 3px solid var(--telkom-red);
+      background: #fff1f2;
+    }
+
+    .card-title {
+      font-size: 9pt;
+      font-weight: 800;
+      color: var(--slate-900);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* WORKFLOW STEPPER */
+    .stepper {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin: 14px 0;
+    }
+
+    .step-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: #ffffff;
+      border: 1.5px solid var(--slate-200);
+      border-radius: 12px;
+      padding: 12px;
+      transition: all 0.2s;
+    }
+
+    .step-badge {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--telkom-red), var(--telkom-burgundy));
+      color: #ffffff;
+      font-weight: 900;
+      font-size: 10pt;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 2px 6px rgba(225, 29, 72, 0.3);
+    }
+
+    .step-content {
+      flex: 1;
+    }
+
+    .step-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 3px;
+    }
+
+    .step-name {
+      font-weight: 900;
+      color: var(--slate-900);
+      font-size: 9.5pt;
+    }
+
+    .step-role {
+      font-size: 7.5pt;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 8px;
+      text-transform: uppercase;
+      font-family: monospace;
+    }
+
+    .role-pimpinan { background: #fee2e2; color: #991b1b; }
+    .role-teknisi { background: #dbeafe; color: #1e40af; }
+    .role-gudang { background: #fef3c7; color: #92400e; }
+
+    .step-desc {
+      font-size: 8.5pt;
+      color: #475569;
+      margin: 0;
+    }
+
+    .step-tech-box {
+      margin-top: 6px;
+      background: var(--slate-100);
+      border-left: 2px solid var(--slate-400);
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 7.8pt;
+      font-family: monospace;
+      color: var(--slate-700);
+    }
+
+    /* TABLES */
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 8.2pt;
+      margin: 12px 0 16px 0;
+    }
+
+    table.data-table th, table.data-table td {
+      border: 1px solid #cbd5e1;
+      padding: 7px 10px;
+      text-align: left;
+    }
+
+    table.data-table th {
+      background: var(--slate-100);
+      font-weight: 900;
+      color: var(--slate-900);
+      text-transform: uppercase;
+      font-size: 7.8pt;
+      letter-spacing: 0.3px;
+    }
+
+    table.data-table tr:nth-child(even) {
+      background: #f8fafc;
+    }
+
+    /* GLOSSARY TAGS */
+    .glossary-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .glossary-item {
+      background: #ffffff;
+      border: 1px solid var(--slate-200);
+      padding: 8px 12px;
+      border-radius: 10px;
+    }
+
+    .glossary-item strong {
+      color: var(--telkom-burgundy);
+      font-family: monospace;
+      font-size: 8.5pt;
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    .glossary-item p {
+      font-size: 8pt;
+      color: var(--slate-600);
+      margin: 0;
+    }
+
+    /* SIGNATURE BLOCK */
+    .sign-box {
+      margin-top: 24px;
+      padding-top: 16px;
+      border-top: 2px solid var(--slate-200);
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 14px;
+      text-align: center;
+    }
+
+    .sign-card {
+      border: 1.5px solid var(--slate-200);
+      border-radius: 12px;
+      padding: 10px;
+      background: #fafafa;
+    }
+
+    .sign-title {
+      font-size: 7.5pt;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: var(--slate-500);
+    }
+
+    .sign-space {
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--slate-400);
+      font-style: italic;
+      font-size: 7.5pt;
+      border-bottom: 1px dashed var(--slate-300);
+      margin: 4px 10px 8px 10px;
+    }
+
+    .sign-name {
+      font-weight: 900;
+      font-size: 8.5pt;
+      color: var(--slate-900);
+      text-decoration: underline;
+    }
+
+    .sign-nip {
+      font-size: 7pt;
+      color: var(--slate-500);
+      font-family: monospace;
+    }
+
+    /* PRINT RULES */
+    @media print {
+      body {
+        background: #ffffff;
+        padding: 0;
+      }
+
+      .container {
+        border: none;
+        box-shadow: none;
+        padding: 0;
+        max-width: 100%;
+      }
+
+      .action-bar {
+        display: none !important;
+      }
+
+      .page-break {
+        page-break-before: always;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+
+    <!-- ACTION BAR (Hanya terlihat di layar browser) -->
+    <div class="action-bar">
+      <div>
+        <span class="badge-live">SISTEM AKTIF & TERHUBUNG SUPABASE REALTIME</span>
+        <span style="font-size: 8pt; color: #64748b; margin-left: 8px;">Dokumen Cetak Biru Operasional Lapangan</span>
+      </div>
+      <button class="btn-print" onclick="window.print()">
+        🖨️ Cetak Buku Panduan (A4 / PDF)
+      </button>
+    </div>
+
+    <!-- KOP SURAT FORMAL TELKOM AKSES -->
+    <div class="kop-surat">
+      <div class="kop-left">
+        <div class="kop-logo">
+          <span class="ta-text">TA</span>
+          <span class="sub-text">TELKOM</span>
+        </div>
+        <div class="kop-titles">
+          <h1>PT TELKOM AKSES (PERSERO)</h1>
+          <div class="branch">AREA OPERASIONAL PAYAKUMBUH &bull; WITEL SUMATERA BARAT</div>
+          <div class="address">
+            Sentral Telepon Otomatis (STO) Koto Nan IV, Jl. Soekarno-Hatta No. 12, Payakumbuh Barat 26224 | Telp: (0752) 92881
+          </div>
+        </div>
+      </div>
+      <div class="kop-right">
+        <div>NOMOR DOKUMEN:</div>
+        <div class="doc-no">DOK-SOP/TA-PYK/2026/011</div>
+        <div style="margin-top: 3px; color: #475569;">Edisi: November 2026</div>
+        <div style="font-size: 7pt; color: var(--emerald-600); font-weight: 800;">KLASIFIKASI: DOKUMEN OPERASIONAL RESMI</div>
+      </div>
+    </div>
+
+    <!-- DOUBLE DIVIDER LINES -->
+    <div class="kop-divider-thick"></div>
+    <div class="kop-divider-thin"></div>
+
+    <!-- JUDUL DOKUMEN -->
+    <div style="text-align: center; margin-bottom: 20px;">
+      <h1 style="font-size: 14pt; font-weight: 900; margin: 0; color: var(--slate-900); text-transform: uppercase; letter-spacing: -0.2px;">
+        PANDUAN ALUR KERJA SISTEM DIGITAL SENTRAL TELEPON OTOMATIS (STO)
+      </h1>
+      <div style="font-size: 9pt; font-weight: 700; color: var(--telkom-red); margin-top: 4px;">
+        Implementasi Standar Operasional Prosedur (SOP) Telkom Akses Indonesia Berbasis Web Realtime & Telegram Dispatcher
+      </div>
+    </div>
+
+    <!-- BAGIAN 1: PEMBARUAN APLIKASI TERKINI -->
+    <h2 class="section-title">
+      <span>1. Pembaruan Aplikasi Terbaru (System Release Notes)</span>
+      <span class="badge-num">Update Patch v2.4</span>
+    </h2>
+    <p>
+      Pembaruan terkini dirancang khusus untuk memecahkan kendala teknis lapangan pada operasional harian STO Telkom Akses Payakumbuh, menjamin kecepatan antarmuka, keandalan persistensi sesi, serta keselarasan penuh terhadap SOP fisik:
+    </p>
+
+    <div class="grid-2">
+      <div class="card highlight">
+        <div class="card-title">
+          <span>📌 Persistensi Halaman & Ciutkan Sidebar (Anti-Reset)</span>
+        </div>
+        <p style="font-size: 8.2pt; margin: 0;">
+          <strong>Kendala Terdahulu:</strong> Saat pengguna me-refresh halaman, menu aktif selalu kembali ke tab teratas (misal dari menu 'Kebutuhan Material' kembali ke 'Daftar Tiket'), dan sidebar yang sebelumnya diciutkan kembali melebar.<br>
+          <strong>Pembaruan Terkini:</strong> Menu aktif disimpan per-role ke dalam <code>LocalStorage</code> (<code>sto_active_tab_teknisi</code>, <code>sto_active_tab_pimpinan</code>, <code>sto_active_tab_gudang</code>). Status sidebar (<code>sto_sidebar_collapsed</code>) tersimpan permanen dan layout konten utama (<code>lg:pl-72</code> vs <code>lg:pl-20</code>) menyelaraskan lebarnya seketika tanpa pergeseran atau kedipan layar.
+        </p>
+      </div>
+
+      <div class="card highlight">
+        <div class="card-title">
+          <span>📍 Anti-Hang GPS Check-In Lapangan (< 1 Detik)</span>
+        </div>
+        <p style="font-size: 8.2pt; margin: 0;">
+          <strong>Kendala Terdahulu:</strong> Tombol <em>"Saya Sudah di Lokasi Kerja"</em> menggantung tanpa respons jika GPS smartphone lambat atau pengguna belum mengizinkan izin lokasi browser.<br>
+          <strong>Pembaruan Terkini:</strong> Dilengkapi <em>1000ms Safety Timer Fallback</em> dan animasi spinner <code>MEMVERIFIKASI LOKASI GPS...</code>. Check-in lokasi kerja dipastikan selesai dalam kurun &lt; 1 detik dengan koordinat presisi target pelanggan.
+        </p>
+      </div>
+
+      <div class="card highlight">
+        <div class="card-title">
+          <span>🔒 Klosin BASTP Permanen Database & Anti-Looping</span>
+        </div>
+        <p style="font-size: 8.2pt; margin: 0;">
+          <strong>Kendala Terdahulu:</strong> Setelah teknisi upload foto dan bukti selesai, SOP Tahap 5 muncul kembali karena status belum terikat permanen ke database Supabase Cloud.<br>
+          <strong>Pembaruan Terkini:</strong> Fungsi <code>finishTugas</code> mengeksekusi update status <code>Done</code> langsung ke PostgreSQL Supabase, mencatat ID ke <code>sto_done_tasks</code>, dan seketika memindahkan tiket ke <em>Riwayat Pekerjaan Selesai (Done)</em>.
+        </p>
+      </div>
+
+      <div class="card highlight">
+        <div class="card-title">
+          <span>🖨️ Kop Surat Resmi Telkom & Border Kontras Tinggi</span>
+        </div>
+        <p style="font-size: 8.2pt; margin: 0;">
+          <strong>Pembaruan Formulir Cetak:</strong> Komponen <code>CetakSuratPermohonan.jsx</code> (SPMG) dan <code>ModalBASTP.jsx</code> kini memiliki Kop Surat institusi resmi PT Telkom Akses, nomor surat dinamis, border tebal tegas (kontras tinggi saat diprint fisik), tabel bergaris pemisah rapi, dan 3 kotak tanda tangan pengesahan (Teknisi, Pimpinan, Gudang).
+        </p>
+      </div>
+    </div>
+
+    <!-- BAGIAN 2: MENGAPA APLIKASI INI DIBUAT DENGAN TUJUAN REAL KERJA STO -->
+    <h2 class="section-title">
+      <span>2. Urgensi & Latar Belakang Realita Kerja STO di Indonesia</span>
+      <span class="badge-num">Operasional Riil Lapangan</span>
+    </h2>
+    <p>
+      <strong>Sentral Telepon Otomatis (STO)</strong> adalah jantung infrastruktur telekomunikasi PT Telkom Indonesia di tingkat kota/kabupaten. Di dalam STO terdapat perangkat transmisi sentral (OLT, FTM, ODF) yang mendistribusikan serat optik melalui kabel Feeder menuju ODC (lemari fiber tepi jalan), kemudian disalurkan ke ODP (kotak hitam di tiang listrik/telepon), hingga masuk ke modem ONT di rumah pelanggan IndiHome.
+    </p>
+
+    <div class="grid-3">
+      <div class="card">
+        <div class="card-title">⚡ SLA Ketat &lt; 3 Jam</div>
+        <p style="font-size: 8pt; margin: 0;">
+          Standar nasional Telkom Akses menuntut pemulihan gangguan internet selesai di bawah 3 jam. Sistem digital ini memotong waktu birokrasi izin kertas bolak-balik antara lapangan dan kantor STO.
+        </p>
+      </div>
+      <div class="card">
+        <div class="card-title">📦 Pencegahan Kebocoran Material</div>
+        <p style="font-size: 8pt; margin: 0;">
+          Kabel dropcore ratusan meter, roset optik, dan modem ONT sering kali hilang atau tidak tercatat riil penggunaannya. Sistem ini mewajibkan rekonsiliasi material riil sebelum tiket dapat ditutup.
+        </p>
+      </div>
+      <div class="card">
+        <div class="card-title">🗺️ Akurasi Port ODP Lapangan</div>
+        <p style="font-size: 8pt; margin: 0;">
+          Mencegah teknisi memasang pelanggan di port ODP tanpa tercatat di sistem pusat. WebGIS otomatis memperbarui kapasitas port ODP menjadi Kuning atau Merah secara instan.
+        </p>
+      </div>
+    </div>
+
+    <!-- BAGIAN 3: MATRIKS PERAN & TANGGUNG JAWAB -->
+    <h2 class="section-title">
+      <span>3. Matriks Peran Kerja (Role Matrix & Tanggung Jawab)</span>
+      <span class="badge-num">3 Unit Kerja Utama</span>
+    </h2>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th style="width: 18%;">Unit / Role</th>
+          <th style="width: 25%;">Tanggung Jawab Utama</th>
+          <th style="width: 32%;">Aktivitas Harian di Aplikasi</th>
+          <th style="width: 25%;">Output Kerja Nyata</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <strong style="color: #991b1b;">1. PIMPINAN STO</strong><br>
+            <span style="font-size: 7.5pt; color: #64748b;">(Manager STO / Asman WFM)</span>
+          </td>
+          <td>Pengawasan KPI, penugasan teknisi, persetujuan material barang, dan monitoring sebaran aset jaringan.</td>
+          <td>
+            • Menerbitkan tiket baru (Pasang Baru / Gangguan).<br>
+            • One-tap approval permohonan material teknisi.<br>
+            • Memantau peta WebGIS titik ODP & tiang.<br>
+            • Mengaudit laporan BASTP pekerjaan tuntas.
+          </td>
+          <td>Penugasan tersiar realtime & otorisasi pengeluaran logistik.</td>
+        </tr>
+        <tr>
+          <td>
+            <strong style="color: #1e40af;">2. TEKNISI LAPANGAN</strong><br>
+            <span style="font-size: 7.5pt; color: #64748b;">(Jointer / Splicer / Installer)</span>
+          </td>
+          <td>Eksekusi penarikan kabel dropcore, splicing fiber optik, setting modem ONT, dan uji redaman (OPM dBm).</td>
+          <td>
+            • Mengklaim tiket terbuka (Open Pool).<br>
+            • Mengajukan SPMG kebutuhan material ke gudang.<br>
+            • Check-In GPS saat sampai di rumah pelanggan.<br>
+            • Input OPM dBm, scan SN modem ONT, upload foto, & closing BASTP.
+          </td>
+          <td>Instalasi fisik tervalidasi & penerbitan dokumen digital BASTP.</td>
+        </tr>
+        <tr>
+          <td>
+            <strong style="color: #92400e;">3. LOGISTIK GUDANG</strong><br>
+            <span style="font-size: 7.5pt; color: #64748b;">(Inventory & Material Keeper)</span>
+          </td>
+          <td>Penyimpanan fisik material di rak gudang STO, registrasi pengadaan barang masuk, dan rilis barang fisik ke teknisi.</td>
+          <td>
+            • Input pengadaan material baru ke inventaris.<br>
+            • Verifikasi fisik barang sebelum diserahkan.<br>
+            • Rilis barang permohonan (stok terpotong otomatis).<br>
+            • Mencetak Surat Jalan Material resmi.
+          </td>
+          <td>Stok gudang akurat & Surat Jalan Pengeluaran Barang terarsip.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- PAGE BREAK UNTUK CETAK PDF/A4 -->
+    <div class="page-break"></div>
+
+    <!-- BAGIAN 4: ALUR LENGKAP END-TO-END (SOP 6 TAHAP) -->
+    <h2 class="section-title">
+      <span>4. Alur Kerja Lengkap Sistem (End-to-End SOP 6 Tahap)</span>
+      <span class="badge-num">Standar Telkom Akses WFM</span>
+    </h2>
+    <p>
+      Berikut adalah alur perjalanan tiket dari awal diterbitkan pimpinan hingga internet pelanggan aktif dan berkas berita acara (BASTP) resmi diterbitkan:
+    </p>
+
+    <div class="stepper">
+      <!-- Step 1 -->
+      <div class="step-item">
+        <div class="step-badge">1</div>
+        <div class="step-content">
+          <div class="step-header">
+            <div class="step-name">Tahap 1: Penerbitan & Penyiaran Tiket (Dispatching)</div>
+            <span class="step-role role-pimpinan">Pimpinan STO</span>
+          </div>
+          <p class="step-desc">
+            Pimpinan memasukkan data tiket penugasan (Pasang Baru IndiHome / Kabel Dropcore Putus / Redaman Tinggi). Tiket disiarkan secara serentak ke sistem aplikasi seluruh teknisi via WebSocket Supabase dan dikirimkan otomatis ke Grup Telegram Koordinasi (Bot <code>@sto_pyk_bot</code>) lengkap dengan tombol inline klaim.
+          </p>
+          <div class="step-tech-box">
+            ⚡ Backend: WebSocket Broadcast <code>tugas_baru</code> &bull; Telegram API <code>sendMessage</code> (Non-blocking &lt; 200ms)
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="step-item">
+        <div class="step-badge">2</div>
+        <div class="step-content">
+          <div class="step-header">
+            <div class="step-name">Tahap 2: Pengambilan Tiket Terbuka (Claiming Work Order)</div>
+            <span class="step-role role-teknisi">Teknisi Lapangan</span>
+          </div>
+          <p class="step-desc">
+            Teknisi yang sedang siaga di lapangan melihat tiket siaran terbuka (Open Pool). Teknisi menekan tombol <strong>"Ambil Pekerjaan Ini"</strong>. Tiket seketika terkunci atas nama teknisi pelaksana, status berubah menjadi <code>Progress</code>, dan bot Telegram mengirim pemberitahuan bahwa tiket telah resmi diambil.
+          </p>
+          <div class="step-tech-box">
+            🔄 Sinkronisasi: Database Supabase <code>tugas.status = 'Progress'</code> &bull; Notifikasi Telegram konfirmasi teknisi
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="step-item">
+        <div class="step-badge">3</div>
+        <div class="step-content">
+          <div class="step-header">
+            <div class="step-name">Tahap 3: Pengajuan Surat Permohonan Barang (SPMG Material)</div>
+            <span class="step-role role-teknisi">Teknisi Lapangan</span>
+          </div>
+          <p class="step-desc">
+            Teknisi memilih barang yang diperlukan untuk instalasi (contoh: 150 meter Kabel Dropcore 1-Core, 1 unit Modem ONT ZTE F670L, 1 unit Roset Optik). Permohonan dikirim digital ke Pimpinan STO untuk persetujuan anggaran dan kelayakan penugasan. Teknisi juga dapat mencetak fisik formulir SPMG jika dibutuhkan pengesahan kantor.
+          </p>
+          <div class="step-tech-box">
+            📋 Dokumen: SPMG (Surat Permohonan Material Gudang) &bull; Tabel <code>permohonan</code> & <code>detail_permohonan</code>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 4 -->
+      <div class="step-item">
+        <div class="step-badge">4</div>
+        <div class="step-content">
+          <div class="step-header">
+            <div class="step-name">Tahap 4: Persetujuan Pimpinan & Serah Terima Fisik di Gudang STO</div>
+            <span class="step-role role-gudang">Pimpinan & Petugas Gudang</span>
+          </div>
+          <p class="step-desc">
+            Pimpinan meninjau rincian barang dan menekan tombol <strong>"Setujui (Approve)"</strong>. Permohonan langsung masuk ke layar Petugas Gudang. Teknisi mendatangi gudang STO, petugas gudang memverifikasi nomor fisik material dan menekan <strong>"Rilis Barang"</strong>. Stok gudang otomatis terpotong secara riil dan Surat Jalan Material siap dicetak.
+          </p>
+          <div class="step-tech-box">
+            📦 Logistik: Pemotongan otomatis tabel <code>barang.stok</code> &bull; Surat Jalan Pengeluaran Barang
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 5 -->
+      <div class="step-item">
+        <div class="step-badge">5</div>
+        <div class="step-content">
+          <div class="step-header">
+            <div class="step-name">Tahap 5: Menuju Lokasi & Check-In GPS Lapangan</div>
+            <span class="step-role role-teknisi">Teknisi Lapangan</span>
+          </div>
+          <p class="step-desc">
+            Teknisi membawa material menuju lokasi rumah pelanggan di Payakumbuh. Sesampainya di depan lokasi ODP tiang pelanggan, teknisi menekan tombol <strong>"GPS Aktif: Saya Sudah Sampai di Lokasi Kerja"</strong>. Sistem mencatat waktu tiba dan koordinat presisi guna membuktikan kehadiran fisik teknisi di titik kerja.
+          </p>
+          <div class="step-tech-box">
+            📍 Lokasi: Validasi koordinat GPS &bull; Indikator <code>tugas.checkin = { verified: true, time: ... }</code>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 6 -->
+      <div class="step-item">
+        <div class="step-badge">6</div>
+        <div class="step-content">
+          <div class="step-header">
+            <div class="step-name">Tahap 6: Uji OPM, Scan SN ONT, Rekonsiliasi & Terbit Dokumen BASTP</div>
+            <span class="step-role role-teknisi">Teknisi Lapangan</span>
+          </div>
+          <p class="step-desc">
+            Teknisi melakukan penarikan dropcore dan penyambungan (splicing). Teknisi mengukur redaman optik dengan OPM (standar -16 s/d -24 dBm), mencatat port ODP yang terpakai, scan/input Serial Number modem ONT, mencatat sisa kabel untuk retur ke gudang, dan mengunggah foto bukti. Tiket ditutup permanen (<code>Done</code>), dokumen digital <strong>BASTP</strong> terbit resmi, dan port ODP di WebGIS otomatis bertambah.
+          </p>
+          <div class="step-tech-box">
+            📜 Penutupan: Dokumen BASTP Digital &bull; Serial ONT "Terpasang" &bull; WebGIS ODP Port Updated &bull; Status <code>Done</code>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BAGIAN 5: GLOSARIUM TERMINOLOGI TELEKOMUNIKASI STO TELKOM -->
+    <h2 class="section-title">
+      <span>5. Glosarium Istilah Teknis Telekomunikasi STO di Indonesia</span>
+      <span class="badge-num">Standar FTTH Telkom Akses</span>
+    </h2>
+
+    <div class="glossary-grid">
+      <div class="glossary-item">
+        <strong>STO (Sentral Telepon Otomatis)</strong>
+        <p>Gedung pusat operasional telekomunikasi Telkom yang menampung perangkat transmisi utama dan titik tolak distribusi fiber optik kota.</p>
+      </div>
+      <div class="glossary-item">
+        <strong>ODF (Optical Distribution Frame)</strong>
+        <p>Rak terminasi kabel serat optik utama di dalam ruang transmisi STO yang menghubungkan OLT ke kabel feeder bawah tanah.</p>
+      </div>
+      <div class="glossary-item">
+        <strong>ODC (Optical Distribution Cabinet)</strong>
+        <p>Lemari gardu fiber optik tepi jalan raya berkapasitas besar (72-288 port) sebagai titik terminasi antara kabel feeder dan kabel distribusi.</p>
+      </div>
+      <div class="glossary-item">
+        <strong>ODP (Optical Distribution Point)</strong>
+        <p>Kotak terminal fiber optik di atas tiang jalan (kapasitas 8 atau 16 port) tempat teknisi menancapkan kabel dropcore menuju rumah pelanggan.</p>
+      </div>
+      <div class="glossary-item">
+        <strong>Kabel Dropcore 1-Core</strong>
+        <p>Kabel serat optik berpelindung kawat baja gantung yang ditarik dari tiang ODP menuju rumah pelanggan (panjang standar 100-150m).</p>
+      </div>
+      <div class="glossary-item">
+        <strong>Roset Optik (Optical Faceplate)</strong>
+        <p>Kotak sambungan putih di dinding dalam rumah pelanggan sebagai tempat terminasi kabel dropcore ke kabel patchcord modem.</p>
+      </div>
+      <div class="glossary-item">
+        <strong>Modem ONT / ONU (Optical Network Terminal)</strong>
+        <p>Perangkat keras penerima sinyal optik menjadi sinyal Wi-Fi/LAN di rumah pelanggan (memiliki Serial Number unik seperti ZTEGC8B...).</p>
+      </div>
+      <div class="glossary-item">
+        <strong>Redaman Optik (Optical Power Loss dalam dBm)</strong>
+        <p>Tingkat kehilangan daya cahaya laser optik. Standar lolos QC Telkom Akses adalah -16.0 dBm s/d -24.0 dBm. Nilai &gt; -25 dBm menyebabkan LOS/lemot.</p>
+      </div>
+      <div class="glossary-item">
+        <strong>BASTP (Berita Acara Serah Terima Pekerjaan)</strong>
+        <p>Dokumen legal resmi yang membuktikan bahwa instalasi selesai, kualitas optik lolos uji, dan material resmi beralih status menjadi milik pelanggan.</p>
+      </div>
+      <div class="glossary-item">
+        <strong>SPMG (Surat Permohonan Material Gudang)</strong>
+        <p>Dokumen pengesahan dari pimpinan STO kepada petugas logistik untuk mengeluarkan material dari rak gudang kepada teknisi lapangan.</p>
+      </div>
+    </div>
+
+    <!-- BLOK PENGESAHAN DOKUMEN TIGA PIHAK -->
+    <div class="sign-box">
+      <div class="sign-card">
+        <div class="sign-title">Disahkan Oleh (Pimpinan STO)</div>
+        <div class="sign-space">
+          <span style="border: 1px solid #10b981; padding: 2px 8px; border-radius: 4px; color: #10b981; font-weight: 800; font-style: normal; font-size: 7pt;">
+            TELAH DISETUJUI DIGITAL
+          </span>
+        </div>
+        <div class="sign-name">Ir. Bambang Sudirman, M.T.</div>
+        <div class="sign-nip">NIK: 74019281 / Manager STO</div>
+      </div>
+
+      <div class="sign-card">
+        <div class="sign-title">Koordinator Teknisi Lapangan</div>
+        <div class="sign-space">
+          ( Tanda Tangan Fisik )
+        </div>
+        <div class="sign-name">Ahmad Fadli / Natasya</div>
+        <div class="sign-nip">NIK: TA-029821 / Senior Field Tech</div>
+      </div>
+
+      <div class="sign-card">
+        <div class="sign-title">Kepala Logistik & Gudang STO</div>
+        <div class="sign-space">
+          ( Cap & Tanda Tangan Logistik )
+        </div>
+        <div class="sign-name">Siti Rahmawati / Restui</div>
+        <div class="sign-nip">NIK: 85023910 / Inventory Keeper</div>
+      </div>
+    </div>
+
+    <!-- FOOTER COPYRIGHT -->
+    <div style="margin-top: 18px; text-align: center; font-size: 7pt; color: #64748b; font-family: monospace;">
+      &copy; 2026 PT TELKOM AKSES (PERSERO) &bull; STO KOTO NAN IV PAYAKUMBUH &bull; WITEL SUMATERA BARAT<br>
+      Aplikasi Terpadu Manajemen Penugasan, WebGIS ODP, Logistik Gudang & BASTP Digital
+    </div>
+
+  </div>
+
+</body>
+</html>

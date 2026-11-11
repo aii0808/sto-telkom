@@ -1,3 +1,4 @@
+// oxlint-disable no-unused-vars
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';

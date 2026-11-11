@@ -30,11 +30,20 @@ import {
 } from 'lucide-react';
 
 export default function ModernSidebar({ activeTab, onTabChange }) {
-  const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const { isDark, toggleTheme } = useTheme();
-  const { currentUser, logout, permohonan, tugas, barang } = useApp();
+  const {
+    currentUser,
+    logout,
+    permohonan,
+    tugas,
+    barang,
+    sidebarCollapsed,
+    toggleSidebar
+  } = useApp();
+
+  const collapsed = !!sidebarCollapsed;
   const navigate = useNavigate();
 
   const currentRole = currentUser?.role || 'pimpinan';
@@ -207,10 +216,10 @@ export default function ModernSidebar({ activeTab, onTabChange }) {
 
           {/* Collapse Button on Desktop */}
           <button
-            onClick={() => setCollapsed(!collapsed)}
+            onClick={toggleSidebar}
             className={`hidden lg:flex p-1.5 rounded-xl ${
               isDark ? 'hover:bg-slate-800 text-slate-400 hover:text-white' : 'hover:bg-slate-100 text-slate-500 hover:text-black'
-            } transition`}
+            } transition cursor-pointer`}
             title={collapsed ? 'Perluas Sidebar' : 'Ciutkan Sidebar'}
           >
             {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
@@ -290,6 +299,31 @@ export default function ModernSidebar({ activeTab, onTabChange }) {
               </button>
             );
           })}
+        </div>
+
+        {/* Link Dokumen Panduan HTML Real Kerja STO */}
+        <div className="px-3 pb-2 pt-1 border-t border-slate-200 dark:border-slate-800/60">
+          <a
+            href="/panduan-alur-kerja-sto.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-2xl text-xs font-bold transition-all duration-200 cursor-pointer ${
+              isDark
+                ? 'bg-rose-950/30 text-rose-300 hover:bg-rose-900/40 border border-rose-800/40'
+                : 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200'
+            } ${collapsed ? 'justify-center' : 'justify-between'}`}
+            title="Dokumen Resmi: SOP & Alur Kerja Lapangan STO Telkom Akses Indonesia"
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <FileText className="w-4 h-4 text-rose-500 shrink-0" />
+              {!collapsed && <span className="truncate">SOP & Panduan STO</span>}
+            </div>
+            {!collapsed && (
+              <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-rose-600 text-white">
+                HTML
+              </span>
+            )}
+          </a>
         </div>
 
         {/* Sidebar Footer Controls */}

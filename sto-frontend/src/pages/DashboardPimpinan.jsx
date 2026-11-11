@@ -61,7 +61,23 @@ const getTaskTypeConfig = (jenisKerja) => {
 };
 
 function DashboardPimpinan() {
-  const [activeMenu, setActiveMenu] = useState('dashboard');
+  const [activeMenu, setActiveMenu] = useState(() => {
+    try {
+      const saved = localStorage.getItem('sto_active_tab_pimpinan');
+      const valid = ['dashboard', 'tracking', 'tabel-odp', 'kelola-tugas', 'approval', 'laporan-kerja', 'laporan-gudang', 'kelola-pegawai'];
+      return saved && valid.includes(saved) ? saved : 'dashboard';
+    } catch {
+      return 'dashboard';
+    }
+  });
+
+  const handleSetActiveMenu = (tab) => {
+    handleSetActiveMenu(tab);
+    try {
+      localStorage.setItem('sto_active_tab_pimpinan', tab);
+    } catch {}
+  };
+
   const [showCreateTaskModal, setShowCreateTaskModal] = useState(false);
   const [bastpModalTask, setBastpModalTask] = useState(null);
   const [selectedTrackingTaskId, setSelectedTrackingTaskId] = useState(null);
@@ -73,7 +89,8 @@ function DashboardPimpinan() {
     tugas = [],
     permohonan = [],
     barang = [],
-    users = []
+    users = [],
+    sidebarCollapsed
   } = useApp();
 
   // Proteksi sesi pimpinan
@@ -108,10 +125,10 @@ function DashboardPimpinan() {
     } transition-colors duration-300`}>
       
       {/* Left Sidebar Layout */}
-      <ModernSidebar activeTab={activeMenu} onTabChange={setActiveMenu} />
+      <ModernSidebar activeTab={activeMenu} onTabChange={handleSetActiveMenu} />
 
       {/* Main Content Area beside Sidebar */}
-      <main className="flex-1 min-w-0 flex flex-col lg:pl-72 transition-all duration-300">
+      <main className={`flex-1 min-w-0 flex flex-col ${sidebarCollapsed ? 'lg:pl-20' : 'lg:pl-72'} transition-all duration-300`}>
         <div className="p-4 sm:p-6 lg:p-8 space-y-6 flex-1 max-w-7xl w-full mx-auto">
           
           {/* Header Banner */}
@@ -229,14 +246,14 @@ function DashboardPimpinan() {
 
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => setActiveMenu('tracking')}
+                        onClick={() => handleSetActiveMenu('tracking')}
                         className="px-2.5 py-1 rounded-xl bg-blue-600/15 hover:bg-blue-600/25 text-blue-400 border border-blue-500/30 text-xs font-bold flex items-center gap-1 transition cursor-pointer"
                       >
                         <MapPin className="w-3.5 h-3.5 text-blue-400" />
                         <span>Buka Peta WebGIS</span>
                       </button>
                       <button
-                        onClick={() => setActiveMenu('kelola-tugas')}
+                        onClick={() => handleSetActiveMenu('kelola-tugas')}
                         className="text-xs text-rose-500 hover:text-rose-400 font-bold flex items-center gap-1"
                       >
                         <span>Kelola Tiket</span>
@@ -325,7 +342,7 @@ function DashboardPimpinan() {
                       </h2>
                     </div>
                     <button
-                      onClick={() => setActiveMenu('laporan-gudang')}
+                      onClick={() => handleSetActiveMenu('laporan-gudang')}
                       className="text-xs text-amber-500 hover:text-amber-400 font-bold flex items-center gap-1"
                     >
                       <span>Detail</span>
@@ -350,7 +367,7 @@ function DashboardPimpinan() {
                     </div>
 
                     <button
-                      onClick={() => setActiveMenu('approval')}
+                      onClick={() => handleSetActiveMenu('approval')}
                       className="w-full mt-2 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition cursor-pointer"
                     >
                       Tinjau Approval Material Sekarang
@@ -369,7 +386,7 @@ function DashboardPimpinan() {
                     Daftar Tiket Tugas Lapangan Terkini
                   </h2>
                   <button
-                    onClick={() => setActiveMenu('laporan-kerja')}
+                    onClick={() => handleSetActiveMenu('laporan-kerja')}
                     className="text-xs text-rose-500 hover:text-rose-400 font-bold"
                   >
                     Lihat Semua Laporan
@@ -469,7 +486,7 @@ function DashboardPimpinan() {
           {/* TAB 2.5: TABEL INVENTARISASI ASET JARINGAN (ODP, TIANG FO, ODC) */}
           {activeMenu === 'tabel-odp' && (
             <div className="animate-in fade-in duration-200">
-              <TabelAsetJaringan onNavigateToWebGis={() => setActiveMenu('tracking')} />
+              <TabelAsetJaringan onNavigateToWebGis={() => handleSetActiveMenu('tracking')} />
             </div>
           )}
 
@@ -616,7 +633,7 @@ function DashboardPimpinan() {
           onOpenBastp={setBastpModalTask}
           onNavigateToTracking={(taskId) => {
             setSelectedTrackingTaskId(taskId);
-            setActiveMenu('tracking');
+            handleSetActiveMenu('tracking');
           }}
         />
       )}

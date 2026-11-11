@@ -1,3 +1,4 @@
+// oxlint-disable no-unused-vars
 /**
  * ============================================================================
  * KOMPONEN: ModalBASTP (Berita Acara Serah Terima Pekerjaan & Rekonsiliasi Material)

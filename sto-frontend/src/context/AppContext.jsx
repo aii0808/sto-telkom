@@ -114,6 +114,25 @@ export function AppProvider({ children }) {
     return saved ? JSON.parse(saved) : initialOdp;
   });
 
+  // State persistensi ciutkan/lebarkan sidebar (tersimpan permanen di LocalStorage)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem('sto_sidebar_collapsed') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleSidebar = useCallback(() => {
+    setSidebarCollapsed(prev => {
+      const next = !prev;
+      try {
+        localStorage.setItem('sto_sidebar_collapsed', String(next));
+      } catch {}
+      return next;
+    });
+  }, []);
+
   // Current active navigation view
   // 'landing' | 'login' | 'pimpinan' | 'teknisi' | 'gudang' | 'audit'
   const [currentView, setCurrentView] = useState('pimpinan');
@@ -1562,6 +1581,9 @@ export function AppProvider({ children }) {
         syncStatus,
         lastSyncedAt,
         refreshData: fetchRealData,
+        sidebarCollapsed,
+        setSidebarCollapsed,
+        toggleSidebar,
         currentUser,
         setCurrentUser,
         currentView,

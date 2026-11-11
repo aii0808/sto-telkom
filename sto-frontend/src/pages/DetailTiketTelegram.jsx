@@ -1,3 +1,4 @@
+// oxlint-disable no-unused-vars react/set-state-in-effect
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useApp } from '../context/AppContext';

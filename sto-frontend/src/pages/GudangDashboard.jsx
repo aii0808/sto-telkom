@@ -44,12 +44,28 @@ export default function GudangDashboard() {
     updateBarang,
     tambahStokBarang,
     deleteBarang,
-    showToast
+    showToast,
+    sidebarCollapsed
   } = useApp();
 
   const user = JSON.parse(localStorage.getItem('user')) || { id: 4, nama_lengkap: 'Siti Rahmawati', role: 'gudang' };
 
-  const [activeMenu, setActiveMenu] = useState('daftar-barang'); // 'daftar-barang' | 'output-barang' | 'input-barang' | 'cetak-surat-jalan'
+  const [activeMenu, setActiveMenu] = useState(() => {
+    try {
+      const saved = localStorage.getItem('sto_active_tab_gudang');
+      const valid = ['daftar-barang', 'output-barang', 'input-barang', 'laporan-detail', 'cetak-surat-jalan'];
+      return saved && valid.includes(saved) ? saved : 'daftar-barang';
+    } catch {
+      return 'daftar-barang';
+    }
+  });
+
+  const handleSetActiveMenu = (tab) => {
+    handleSetActiveMenu(tab);
+    try {
+      localStorage.setItem('sto_active_tab_gudang', tab);
+    } catch {}
+  };
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [ontSearchQuery, setOntSearchQuery] = useState('');
@@ -384,10 +400,10 @@ export default function GudangDashboard() {
     } transition-colors duration-300`}>
       
       {/* Left Sidebar Layout */}
-      <ModernSidebar activeTab={activeMenu} onTabChange={setActiveMenu} />
+      <ModernSidebar activeTab={activeMenu} onTabChange={handleSetActiveMenu} />
 
       {/* Main Content Area */}
-      <main className="flex-1 min-w-0 flex flex-col lg:pl-72 transition-all duration-300">
+      <main className={`flex-1 min-w-0 flex flex-col ${sidebarCollapsed ? 'lg:pl-20' : 'lg:pl-72'} transition-all duration-300`}>
         <div className="p-4 sm:p-6 lg:p-8 space-y-6 flex-1 max-w-7xl w-full mx-auto">
           
           {/* Header Banner */}
@@ -432,7 +448,7 @@ export default function GudangDashboard() {
               </div>
               <button
                 type="button"
-                onClick={() => setActiveMenu('output-barang')}
+                onClick={() => handleSetActiveMenu('output-barang')}
                 className="px-4 py-2 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs shrink-0 cursor-pointer transition shadow active:scale-95 flex items-center justify-center gap-1.5"
               >
                 <span>Buka Menu Output Barang</span>
@@ -608,7 +624,7 @@ export default function GudangDashboard() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => setActiveMenu('cetak-surat-jalan')}
+                          onClick={() => handleSetActiveMenu('cetak-surat-jalan')}
                           className="w-full py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs border border-slate-700 flex items-center justify-center gap-1.5 transition cursor-pointer"
                         >
                           <FileText className="w-3.5 h-3.5" />
@@ -940,7 +956,7 @@ export default function GudangDashboard() {
 
                   <button
                     type="button"
-                    onClick={() => setActiveMenu('input-barang')}
+                    onClick={() => handleSetActiveMenu('input-barang')}
                     className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-lg shadow-emerald-600/30 transition cursor-pointer whitespace-nowrap"
                   >
                     <PlusCircle className="w-4 h-4" />

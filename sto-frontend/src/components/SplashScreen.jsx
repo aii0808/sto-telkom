@@ -92,7 +92,7 @@ export default function SplashScreen({ onFinish, duration = 1800 }) {
 
       {/* Footer copyright */}
       <div className="absolute bottom-6 text-[10px] text-slate-400 font-mono">
-        © 2026 PT Telkom Akses — Sentral Telepon Otomatis
+        © 2026 PT Telkom Akses — Sentral Telepon Otomatis Payakumbuh
       </div>
     </div>
   );
