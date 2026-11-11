@@ -53,7 +53,7 @@ export default function GudangDashboard() {
   const [activeMenu, setActiveMenu] = useState(() => {
     try {
       const saved = localStorage.getItem('sto_active_tab_gudang');
-      const valid = ['daftar-barang', 'output-barang', 'input-barang', 'laporan-detail', 'cetak-surat-jalan'];
+      const valid = ['daftar-barang', 'output-barang', 'input-barang', 'audit-ont', 'cetak-surat-jalan'];
       return saved && valid.includes(saved) ? saved : 'daftar-barang';
     } catch {
       return 'daftar-barang';
@@ -146,22 +146,62 @@ export default function GudangDashboard() {
 
   // Resolusi kategori otomatis berdasarkan nama barang standar Telkom
   const resolveKategori = (b) => {
-    if (b.kategori && b.kategori !== 'Umum') return b.kategori;
+    if (b.kategori && b.kategori !== 'Umum' && b.kategori !== 'Material') return b.kategori;
     const name = (b.nama_barang || '').toLowerCase();
-    if (name.includes('kabel') || name.includes('dropcore') || name.includes('fo') || name.includes('fiber')) {
+    if (name.includes('kabel') || name.includes('dropcore') || name.includes('fo') || name.includes('fiber') || name.includes('serat')) {
       return 'Kabel & Serat Optik';
     }
     if (name.includes('ont') || name.includes('modem') || name.includes('zte') || name.includes('huawei') || name.includes('fiberhome')) {
-      return 'Perangkat Aktif';
+      return 'Perangkat Aktif (ONT)';
     }
     if (name.includes('roset') || name.includes('patchcord') || name.includes('splitter') || name.includes('adapter') || name.includes('odp')) {
       return 'Perangkat Pasif';
     }
-    if (name.includes('connector') || name.includes('clamp') || name.includes('sleeve') || name.includes('alkohol') || name.includes('tissue') || name.includes('s-clamp')) {
-      return 'Consumable & Aksesoris';
-    }
-    return 'Aksesoris';
+    return 'Consumable & Aksesoris';
   };
+
+  // Hitung distribusi kategori riil 100% dari data database Supabase
+  const categoryStats = React.useMemo(() => {
+    let kabelQty = 0;
+    let ontQty = 0;
+    let pasifQty = 0;
+    let consumableQty = 0;
+
+    barang.forEach(b => {
+      const cat = resolveKategori(b);
+      const qty = Number(b.stok) || 0;
+      if (cat === 'Kabel & Serat Optik') kabelQty += qty;
+      else if (cat === 'Perangkat Aktif (ONT)') ontQty += qty;
+      else if (cat === 'Perangkat Pasif') pasifQty += qty;
+      else consumableQty += qty;
+    });
+
+    const totalQty = kabelQty + ontQty + pasifQty + consumableQty;
+    const circumference = 2 * Math.PI * 38; // 238.76
+
+    const calcSegment = (qty) => {
+      if (totalQty === 0) return { len: 0, pct: 0 };
+      const ratio = qty / totalQty;
+      return {
+        len: Math.round(ratio * circumference * 10) / 10,
+        pct: Math.round(ratio * 1000) / 10
+      };
+    };
+
+    const sKabel = calcSegment(kabelQty);
+    const sOnt = calcSegment(ontQty);
+    const sPasif = calcSegment(pasifQty);
+    const sConsumable = calcSegment(consumableQty);
+
+    return {
+      kabel: { qty: kabelQty, len: sKabel.len, pct: sKabel.pct, offset: 0 },
+      ont: { qty: ontQty, len: sOnt.len, pct: sOnt.pct, offset: -sKabel.len },
+      pasif: { qty: pasifQty, len: sPasif.len, pct: sPasif.pct, offset: -(sKabel.len + sOnt.len) },
+      consumable: { qty: consumableQty, len: sConsumable.len, pct: sConsumable.pct, offset: -(sKabel.len + sOnt.len + sPasif.len) },
+      totalQty,
+      circumference
+    };
+  }, [barang]);
 
   // Filtered inventory dengan mapping data Supabase realtime
   const filteredBarang = barang.map(b => ({
@@ -178,10 +218,9 @@ export default function GudangDashboard() {
   const categories = [
     'all',
     'Kabel & Serat Optik',
-    'Perangkat Aktif',
+    'Perangkat Aktif (ONT)',
     'Perangkat Pasif',
-    'Consumable & Aksesoris',
-    'Aksesoris'
+    'Consumable & Aksesoris'
   ];
 
   const handleQuickAddStock = async (item, amount) => {
@@ -335,17 +374,6 @@ export default function GudangDashboard() {
     });
   }, [ontInventoryList, ontSearchQuery, ontStatusFilter]);
 
-
-  // Statistik Kategori Material untuk Donut Chart
-  const categoryStats = React.useMemo(() => {
-    const counts = {};
-    barang.forEach(b => {
-      const cat = b.kategori || 'Aksesoris';
-      counts[cat] = (counts[cat] || 0) + Number(b.stok);
-    });
-    return counts;
-  }, [barang]);
-
   const stockHealthStats = React.useMemo(() => {
     let aman = 0;
     let menipis = 0;
@@ -432,7 +460,7 @@ export default function GudangDashboard() {
                 {activeMenu === 'daftar-barang' && 'Daftar Stok & Master Inventaris Material Gudang STO'}
                 {activeMenu === 'output-barang' && 'Output Barang (Rilis & Serah Terima ke Teknisi)'}
                 {activeMenu === 'input-barang' && 'Input Barang (Pengadaan & Registrasi Masuk)'}
-                {activeMenu === 'laporan-detail' && 'Laporan Barang Detail & Katalog Master Stok'}
+                {activeMenu === 'audit-ont' && 'Audit & Pelacakan Aset ONT (Status Terpasang Lapangan)'}
                 {activeMenu === 'cetak-surat-jalan' && 'Cetak Surat Jalan & Bukti Serah Terima Material'}
               </h1>
               <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'} mt-0.5`}>
@@ -758,7 +786,7 @@ export default function GudangDashboard() {
               {/* ANALYTICS CHARTS SECTION (DONUT & BAR CHART STOK GUDANG) */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 
-                {/* 1. DONUT / PIE CHART: DISTRIBUSI KATEGORI MATERIAL GUDANG */}
+                {/* 1. DONUT / PIE CHART: DISTRIBUSI KATEGORI MATERIAL GUDANG (REAL SUPABASE) */}
                 <div className={`${isDark ? 'bg-slate-900/80 border-slate-800' : 'bg-white border-slate-200 shadow-sm'} border rounded-3xl p-5 space-y-4`}>
                   <div className="flex items-center justify-between pb-3 border-b border-slate-800/60">
                     <div className="flex items-center gap-2">
@@ -769,40 +797,71 @@ export default function GudangDashboard() {
                         <h3 className={`text-sm font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>
                           Komposisi Kategori Material Gudang
                         </h3>
-                        <p className="text-[10px] text-slate-400">Proporsi volume fisik material di rak logistik</p>
+                        <p className="text-[10px] text-slate-400">Proporsi volume fisik material sinkron real-time dengan Supabase</p>
                       </div>
                     </div>
                     <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">
-                      Total: {barang.reduce((acc, b) => acc + Number(b.stok), 0).toLocaleString()} Unit
+                      Total: {categoryStats.totalQty.toLocaleString()} Unit
                     </span>
                   </div>
 
                   <div className="flex flex-col sm:flex-row items-center gap-6 py-2">
-                    {/* SVG Donut Chart */}
+                    {/* SVG Donut Chart Dinamis */}
                     <div className="relative w-36 h-36 shrink-0 flex items-center justify-center">
                       <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
                         {/* Background Ring */}
                         <circle cx="50" cy="50" r="38" fill="none" stroke={isDark ? '#1e293b' : '#f1f5f9'} strokeWidth="14" />
-                        {/* Segment 1: Kabel & Serat (40%) */}
-                        <circle cx="50" cy="50" r="38" fill="none" stroke="#059669" strokeWidth="14"
-                          strokeDasharray="95 144" strokeDashoffset="0" strokeLinecap="round" />
-                        {/* Segment 2: Perangkat Aktif ONT (25%) */}
-                        <circle cx="50" cy="50" r="38" fill="none" stroke="#0284c7" strokeWidth="14"
-                          strokeDasharray="60 179" strokeDashoffset="-98" strokeLinecap="round" />
-                        {/* Segment 3: Perangkat Pasif (20%) */}
-                        <circle cx="50" cy="50" r="38" fill="none" stroke="#d97706" strokeWidth="14"
-                          strokeDasharray="48 191" strokeDashoffset="-161" strokeLinecap="round" />
-                        {/* Segment 4: Aksesoris & Consumable (15%) */}
-                        <circle cx="50" cy="50" r="38" fill="none" stroke="#a855f7" strokeWidth="14"
-                          strokeDasharray="36 203" strokeDashoffset="-212" strokeLinecap="round" />
+                        
+                        {categoryStats.totalQty > 0 ? (
+                          <>
+                            {/* Segment 1: Kabel & Serat (Emerald) */}
+                            {categoryStats.kabel.len > 0 && (
+                              <circle
+                                cx="50" cy="50" r="38" fill="none" stroke="#059669" strokeWidth="14"
+                                strokeDasharray={`${categoryStats.kabel.len} ${categoryStats.circumference - categoryStats.kabel.len}`}
+                                strokeDashoffset={categoryStats.kabel.offset}
+                                strokeLinecap="round"
+                              />
+                            )}
+                            {/* Segment 2: Perangkat Aktif ONT (Sky) */}
+                            {categoryStats.ont.len > 0 && (
+                              <circle
+                                cx="50" cy="50" r="38" fill="none" stroke="#0284c7" strokeWidth="14"
+                                strokeDasharray={`${categoryStats.ont.len} ${categoryStats.circumference - categoryStats.ont.len}`}
+                                strokeDashoffset={categoryStats.ont.offset}
+                                strokeLinecap="round"
+                              />
+                            )}
+                            {/* Segment 3: Perangkat Pasif (Amber) */}
+                            {categoryStats.pasif.len > 0 && (
+                              <circle
+                                cx="50" cy="50" r="38" fill="none" stroke="#d97706" strokeWidth="14"
+                                strokeDasharray={`${categoryStats.pasif.len} ${categoryStats.circumference - categoryStats.pasif.len}`}
+                                strokeDashoffset={categoryStats.pasif.offset}
+                                strokeLinecap="round"
+                              />
+                            )}
+                            {/* Segment 4: Aksesoris & Consumables (Purple) */}
+                            {categoryStats.consumable.len > 0 && (
+                              <circle
+                                cx="50" cy="50" r="38" fill="none" stroke="#a855f7" strokeWidth="14"
+                                strokeDasharray={`${categoryStats.consumable.len} ${categoryStats.circumference - categoryStats.consumable.len}`}
+                                strokeDashoffset={categoryStats.consumable.offset}
+                                strokeLinecap="round"
+                              />
+                            )}
+                          </>
+                        ) : null}
                       </svg>
                       <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                        <span className="text-xs font-black text-emerald-400">100%</span>
-                        <span className="text-[9px] text-slate-400 font-bold uppercase">Logistik</span>
+                        <span className="text-xs font-black text-emerald-400">
+                          {categoryStats.totalQty.toLocaleString()}
+                        </span>
+                        <span className="text-[9px] text-slate-400 font-bold uppercase">Unit Fisik</span>
                       </div>
                     </div>
 
-                    {/* Legend Chips */}
+                    {/* Legend Chips Real Data Database */}
                     <div className="flex-1 w-full space-y-2 text-xs">
                       <div className="flex items-center justify-between">
                         <span className="flex items-center gap-2">
@@ -810,7 +869,7 @@ export default function GudangDashboard() {
                           <span className={`text-[11px] ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Kabel & Dropcore</span>
                         </span>
                         <strong className="font-mono text-emerald-400 text-xs">
-                          {barang.filter(b => b.kategori === 'Kabel & Serat Optik').reduce((a, b) => a + Number(b.stok), 0)} unit
+                          {categoryStats.kabel.qty.toLocaleString()} unit ({categoryStats.kabel.pct}%)
                         </strong>
                       </div>
                       <div className="flex items-center justify-between">
@@ -819,7 +878,7 @@ export default function GudangDashboard() {
                           <span className={`text-[11px] ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Perangkat Aktif (ONT)</span>
                         </span>
                         <strong className="font-mono text-sky-400 text-xs">
-                          {barang.filter(b => b.kategori === 'Perangkat Aktif').reduce((a, b) => a + Number(b.stok), 0)} unit
+                          {categoryStats.ont.qty.toLocaleString()} unit ({categoryStats.ont.pct}%)
                         </strong>
                       </div>
                       <div className="flex items-center justify-between">
@@ -828,7 +887,7 @@ export default function GudangDashboard() {
                           <span className={`text-[11px] ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Perangkat Pasif (Roset/Splitter)</span>
                         </span>
                         <strong className="font-mono text-amber-400 text-xs">
-                          {barang.filter(b => b.kategori === 'Perangkat Pasif').reduce((a, b) => a + Number(b.stok), 0)} unit
+                          {categoryStats.pasif.qty.toLocaleString()} unit ({categoryStats.pasif.pct}%)
                         </strong>
                       </div>
                       <div className="flex items-center justify-between">
@@ -837,7 +896,7 @@ export default function GudangDashboard() {
                           <span className={`text-[11px] ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Aksesoris & Consumables</span>
                         </span>
                         <strong className="font-mono text-purple-400 text-xs">
-                          {barang.filter(b => b.kategori === 'Consumable' || b.kategori === 'Aksesoris Indoor' || b.kategori === 'Aksesoris').reduce((a, b) => a + Number(b.stok), 0)} unit
+                          {categoryStats.consumable.qty.toLocaleString()} unit ({categoryStats.consumable.pct}%)
                         </strong>
                       </div>
                     </div>
@@ -1089,33 +1148,46 @@ export default function GudangDashboard() {
                 </div>
               </div>
 
-              {/* SUB-SECTION AUDIT: TRASIR LIFECYCLE PERANGKAT ONT (DI GUDANG -> DI PERJALANAN -> TERPASANG) */}
-              <div className={`${isDark ? 'bg-slate-900/80 border-slate-800' : 'bg-white border-slate-200 shadow-sm'} border rounded-3xl overflow-hidden shadow-xl space-y-4 p-5`}>
+            </div>
+          )}
+
+          {/* TAB: AUDIT & PELACAKAN ASET ONT (MENU KHUSUS AUDIT PERANGKAT TERPASANG) */}
+          {activeMenu === 'audit-ont' && (
+            <div className="space-y-6 animate-in fade-in duration-200">
+              <div className={`${isDark ? 'bg-slate-900/80 border-slate-800' : 'bg-white border-slate-200 shadow-sm'} border rounded-3xl overflow-hidden shadow-xl space-y-4 p-5 sm:p-6`}>
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800/80">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/30 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/30 flex items-center justify-center">
                       <Barcode className="w-5 h-5" />
                     </div>
                     <div>
-                      <h3 className={`text-sm font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                        Audit & Trasir Perangkat ONT (Optical Network Terminal) Lapangan
+                      <h3 className={`text-base font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                        Audit & Pelacakan Aset Perangkat ONT Lapangan
                       </h3>
-                      <p className="text-[11px] text-slate-400">
-                        Pelacakan alur fisik ONT: Di Rak Gudang &rarr; Dalam Perjalanan &rarr; Terpasang di Pelanggan (Validasi SN, Foto Bukti &amp; BASTP).
+                      <p className="text-xs text-slate-400">
+                        Pelacakan alur fisik ONT: Di Rak Gudang &rarr; Dalam Perjalanan (Teknisi) &rarr; Terpasang di Pelanggan (Validasi SN Barcode, Foto Bukti &amp; BASTP).
                       </p>
                     </div>
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700">
-                      Gudang: {ontInventoryList.filter(o => o.status === 'Di Gudang').length} Unit
+                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-slate-800 text-slate-300 border border-slate-700">
+                      Di Gudang: {ontInventoryList.filter(o => o.status === 'Di Gudang').length} Unit
                     </span>
-                    <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">
                       Dalam Perjalanan: {ontInventoryList.filter(o => o.status === 'Di Perjalanan').length} Unit
                     </span>
-                    <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                       Terpasang: {ontInventoryList.filter(o => o.status === 'Terpasang').length} Unit
                     </span>
+                    <button
+                      type="button"
+                      onClick={handleExportExcel}
+                      className="px-3 py-1 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md transition cursor-pointer"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Export CSV Audit</span>
+                    </button>
                   </div>
                 </div>
 
@@ -1125,7 +1197,7 @@ export default function GudangDashboard() {
                     <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
-                      placeholder="Lacak No. Seri ONT (misal: ZTEGC8B... / HWTC...) / Pelanggan / Lokasi..."
+                      placeholder="Lacak No. Seri ONT (misal: ZTEGC8B... / HWTC...) / Pelanggan / Alamat / Teknisi..."
                       value={ontSearchQuery}
                       onChange={(e) => setOntSearchQuery(e.target.value)}
                       className="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 font-mono"
@@ -1182,7 +1254,6 @@ export default function GudangDashboard() {
                           const isTransit = item.status === 'Di Perjalanan';
 
                           return (
-
                           <tr key={item.id} className={`${isDark ? 'hover:bg-slate-800/40' : 'hover:bg-slate-50'} transition`}>
                             <td className="px-3.5 py-3">
                               <div className="font-mono font-bold text-xs text-purple-400 flex items-center gap-1.5">
@@ -1238,7 +1309,6 @@ export default function GudangDashboard() {
                   </table>
                 </div>
               </div>
-
             </div>
           )}
 
