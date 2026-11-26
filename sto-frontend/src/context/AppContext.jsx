@@ -1075,7 +1075,7 @@ export function AppProvider({ children }) {
       const cleanAddress = parseTaskDetails(finalTask).address || taskData.lokasi || 'Alamat belum terdata';
       const mapsUrl = formatTelegramMapsUrl(target_lat, target_lng, cleanAddress);
       const kontakHtml = formatTelegramPhoneLinks(finalTask.pelanggan_telp);
-      const portalUrl = `https://sto-telkom.vercel.app/tiket/${encodeURIComponent(String(finalTask.id))}`;
+      const portalUrl = 'https://sto-telkom.vercel.app';
 
       const headerLine = isOpenPool
         ? `🚨 <b>[TELKOM AKSES STO PAYAKUMBUH — SPK BARU]</b>`
@@ -1189,7 +1189,7 @@ export function AppProvider({ children }) {
       const odpKode = targetTask.odp_kode || matchedOdp?.kode_odp || 'Titik ODP Belum Ditentukan';
       const mapsUrl = formatTelegramMapsUrl(targetTask.target_lat, targetTask.target_lng, cust.address);
       const kontakHtml = formatTelegramPhoneLinks(cust.telp || targetTask.pelanggan_telp);
-      const portalUrl = `https://sto-telkom.vercel.app/tiket/${encodeURIComponent(String(parsedTugasId))}`;
+      const portalUrl = 'https://sto-telkom.vercel.app';
 
       const claimText = truncateTelegramMessage([
         `👷 <b>[TELKOM AKSES STO PAYAKUMBUH — TIKET DIKLAIM]</b>`,
@@ -1408,7 +1408,7 @@ export function AppProvider({ children }) {
         ? `Batch ${validTugasIds.length} Tiket (${validTugasIds.slice(0, 15).map(id => `#${escTelegramHtml(id)}`).join(', ')}${validTugasIds.length > 15 ? ', ...' : ''})`
         : `#${escTelegramHtml(parsedTugasId)} (${escTelegramHtml(parentTask?.jenis_kerja || 'Penugasan Lapangan')})`;
 
-      const portalUrl = `https://sto-telkom.vercel.app/tiket/${encodeURIComponent(String(parsedTugasId))}`;
+      const portalUrl = 'https://sto-telkom.vercel.app';
 
       const textGudang = truncateTelegramMessage([
         `📦 <b>[TELKOM AKSES STO PAYAKUMBUH — PERMOHONAN MATERIAL]</b>`,

@@ -296,7 +296,7 @@ async function handleTelegramCallbackQuery(cq) {
         text: `Membuka Tiket #${tugasId} di browser...`
       })
     });
-    await kirimKeGrup(`ℹ️ <b>Detail Tiket #${tugasId}:</b> <a href="${baseUrl}/tiket/${tugasId}">${baseUrl}/tiket/${tugasId}</a>`);
+    await kirimKeGrup(`ℹ️ <b>Detail Tiket #${tugasId}:</b> <a href="${baseUrl}">${baseUrl}</a>`);
     return;
   }
 
@@ -379,7 +379,7 @@ async function handleTelegramCallbackQuery(cq) {
 
     // 5. Kirim pengumuman update dispatch ke Grup Telegram & instruksikan teknisi ke Portal
     const baseUrl = getAppFrontendUrl();
-    const magicLink = `${baseUrl}/magic-login?token=${token}`;
+    const magicLink = baseUrl;
 
     const odpKode = taskData?.odp?.kode_odp || taskData?.odp_kode || 'Titik ODP Belum Ditentukan';
     const groupBroadcastText = templateKlaimTiket({
@@ -585,7 +585,7 @@ function templateTiketBaru(param1, param2, param3) {
 
   const odpKode = tugas.odp_kode || tugas.odp?.kode_odp || 'Titik ODP Belum Ditentukan';
   const jenisKerja = tugas.jenis_kerja || 'Penugasan Lapangan';
-  const targetUrl = (magicUrl || `${baseUrl}/tiket/${tugas.id || ''}`).replace(/\/+$/, '');
+  const targetUrl = (magicUrl || baseUrl).replace(/\/+$/, '');
   const mapsUrl = formatMapsUrl(tugas.target_lat || tugas.latitude, tugas.target_lng || tugas.longitude, meta.address);
   const kontakHtml = formatPhoneLinks(meta.pelangganTelp);
   const isAssigned = mode === 'assigned' && Boolean(teknisiNama || tugas.teknisi_id);
@@ -633,7 +633,7 @@ function buildInlineKeyboardTiket(param1, param2) {
     magicUrl = param2;
   }
 
-  const webUrl = (magicUrl || `${defaultFrontend}/tiket/${tugas?.id || ''}`).replace(/\/+$/, '');
+  const webUrl = (magicUrl || defaultFrontend).replace(/\/+$/, '');
 
   return {
     inline_keyboard: [
@@ -658,7 +658,7 @@ function buildInlineKeyboardTiket(param1, param2) {
  */
 function templateKlaimTiket({ tugas = {}, teknisiNama = 'Teknisi Lapangan', magicLink = null, baseUrl = null }) {
   const defaultFrontend = (baseUrl || getAppFrontendUrl()).replace(/\/+$/, '');
-  const targetUrl = (magicLink || `${defaultFrontend}/tiket/${tugas.id || ''}`).replace(/\/+$/, '');
+  const targetUrl = (magicLink || defaultFrontend).replace(/\/+$/, '');
   const meta = parseTaskLocationMeta(tugas.lokasi, tugas.pelanggan_nama, tugas.pelanggan_telp, tugas.keterangan);
   const odpKode = tugas.odp_kode || tugas.odp?.kode_odp || 'Titik ODP Belum Ditentukan';
   const jenisKerja = tugas.jenis_kerja || 'Penugasan Lapangan';
@@ -714,7 +714,7 @@ function templatePermohonanMaterial({ tugas, permohonan, permohonanIds = [], tug
     ? permohonanIds.slice(0, 10).map(id => `#${esc(id)}`).join(', ') + (permohonanIds.length > 10 ? ', ...' : '')
     : `#${esc(permohonan?.id || '-')}`;
 
-  const tiketUrl = `${defaultFrontend}/tiket/${encodeURIComponent(String(tugas?.id || permohonan?.tugas_id || tugasIds[0] || ''))}`;
+  const tiketUrl = defaultFrontend;
 
   return truncateTelegramMessage([
     `📦 <b>[TELKOM AKSES STO PAYAKUMBUH — PERMOHONAN MATERIAL]</b>`,
@@ -772,7 +772,7 @@ function templateCheckIn({ tugas, teknisiNama = 'Teknisi Lapangan', latitude = n
   const meta = parseTaskLocationMeta(tugas?.lokasi, tugas?.pelanggan_nama, tugas?.pelanggan_telp);
   const mapsUrl = formatMapsUrl(latitude, longitude, '');
   const defaultFrontend = (baseUrl || getAppFrontendUrl()).replace(/\/+$/, '');
-  const tiketUrl = `${defaultFrontend}/tiket/${encodeURIComponent(String(tugas?.id || ''))}`;
+  const tiketUrl = defaultFrontend;
 
   const coordLine = mapsUrl
     ? `📌 <b>Koordinat GPS:</b> <code>${esc(latitude)}, ${esc(longitude)}</code>\n🗺️ <b>Peta Lokasi:</b> <a href="${esc(mapsUrl)}">Buka Titik di Google Maps</a>`
@@ -811,7 +811,7 @@ function templateClosingBastp({
   const noSurat = bastpNo || `BASTP/TA-PYK/2026/${String(tugas?.id || '0').padStart(4, '0')}`;
   const cleanSn = (snOnt && String(snOnt).trim()) ? String(snOnt).trim() : '-';
   const defaultFrontend = (baseUrl || getAppFrontendUrl()).replace(/\/+$/, '');
-  const tiketUrl = `${defaultFrontend}/tiket/${encodeURIComponent(String(tugas?.id || ''))}`;
+  const tiketUrl = defaultFrontend;
 
   // Evaluasi QC redaman optik secara dinamis (-16 s/d -24 dBm)
   let redamanText = '<i>Belum diukur</i>';

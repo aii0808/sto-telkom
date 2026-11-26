@@ -128,7 +128,7 @@ exports.createTugas = async (req, res) => {
     }
 
     const baseUrl = (process.env.APP_FRONTEND_URL || 'https://sto-telkom.vercel.app').replace(/\/+$/, '');
-    magicUrl = `${baseUrl}/tiket/${data.id}`;
+    magicUrl = baseUrl;
 
     let odp = odp_kode || null;
     if (!odp && parsedOdpId && !isNaN(parsedOdpId)) {
@@ -388,7 +388,7 @@ exports.claimTugas = async (req, res) => {
     }
 
     const baseUrl = (process.env.APP_FRONTEND_URL || 'https://sto-telkom.vercel.app').replace(/\/+$/, '');
-    const magicLink = `${baseUrl}/tiket/${parsedId}`;
+    const magicLink = baseUrl;
     const broadcastClaim = telegramService.templateKlaimTiket({
       tugas: {
         ...existingTugas,
