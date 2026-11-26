@@ -5,7 +5,7 @@ import {
   Boxes,
   Package,
   AlertTriangle,
-  Send,
+  Truck,
   Search,
   Check,
   Download,
@@ -200,7 +200,7 @@ export default function LaporanGudangPimpinan() {
         <div className={`p-4 rounded-2xl border ${isDark ? 'bg-slate-950/60 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
           <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
             <span>Material Keluar</span>
-            <Send className="w-4 h-4 text-purple-400" />
+            <Truck className="w-4 h-4 text-purple-400" aria-hidden="true" />
           </div>
           <div className={`text-xl font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>
             {releasedMutations.length}

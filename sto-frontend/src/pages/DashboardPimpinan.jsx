@@ -721,7 +721,7 @@ function DashboardPimpinan() {
 
                               {/* Kolom 4: Status Tiket & BASTP */}
                               <td className="px-1.5 py-2 text-center">
-                                <div className="flex items-center justify-center gap-1">
+                                <div className="flex items-center justify-center gap-1 flex-wrap">
                                   {isDone ? (
                                     <>
                                       <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-950/60 text-emerald-400 border border-emerald-500/30 shadow-[0_0_8px_rgba(16,185,129,0.2)] whitespace-nowrap">
@@ -730,10 +730,12 @@ function DashboardPimpinan() {
                                       <button
                                         type="button"
                                         onClick={() => setBastpModalTask(t)}
-                                        className="p-1 rounded-md bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 border border-rose-500/40 text-[9px] font-bold transition cursor-pointer shrink-0"
+                                        className="px-1.5 py-0.5 rounded-md bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 border border-rose-500/40 text-[9px] font-bold transition cursor-pointer shrink-0 inline-flex items-center gap-1"
+                                        aria-label="Buka Dokumen BASTP"
                                         title="Buka Rekap BASTP"
                                       >
-                                        <FileText className="w-2.5 h-2.5" />
+                                        <FileText className="w-2.5 h-2.5" aria-hidden="true" />
+                                        <span>BASTP</span>
                                       </button>
                                     </>
                                   ) : (

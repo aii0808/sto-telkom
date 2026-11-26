@@ -320,9 +320,10 @@ export default function KelolaTugas({ onOpenCreateModal, onOpenBastp, hideHeader
                             type="button"
                             onClick={() => handleStartEdit(task)}
                             className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 text-[10px] font-bold flex items-center gap-1 transition cursor-pointer active:scale-95"
+                            aria-label="Edit Tiket"
                             title="Edit Data Tiket"
                           >
-                            <Edit2 className="w-3.5 h-3.5" />
+                            <Edit2 className="w-3.5 h-3.5" aria-hidden="true" />
                             <span className="hidden xl:inline">Edit</span>
                           </button>
 
@@ -330,9 +331,10 @@ export default function KelolaTugas({ onOpenCreateModal, onOpenBastp, hideHeader
                             type="button"
                             onClick={() => handleDelete(task.id)}
                             className="p-1.5 rounded-lg bg-rose-950/40 hover:bg-rose-900/60 text-rose-400 border border-rose-500/30 text-[10px] font-bold flex items-center gap-1 transition cursor-pointer active:scale-95"
+                            aria-label="Hapus Tiket"
                             title="Hapus Tiket"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
                           </button>
                         </div>
                       </td>
@@ -469,10 +471,13 @@ export default function KelolaTugas({ onOpenCreateModal, onOpenBastp, hideHeader
                 <h3 className="text-base font-bold text-slate-900 dark:text-white">Edit Tiket Penugasan #{editingTask.id}</h3>
               </div>
               <button
+                type="button"
                 onClick={() => setEditingTask(null)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white transition"
+                aria-label="Tutup jendela"
+                title="Tutup"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white transition cursor-pointer"
               >
-                <X className="w-5 h-5" />
+                <X className="w-5 h-5" aria-hidden="true" />
               </button>
             </div>
 

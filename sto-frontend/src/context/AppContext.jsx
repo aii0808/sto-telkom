@@ -38,7 +38,14 @@ import supabase, { isSupabaseConfigured } from '../api/supabaseClient';
 import api from '../api/axiosInstance';
 import { playNotificationChime } from '../utils/soundHelper';
 import { parseTaskDetails } from '../utils/taskFormatter';
-import { sendTelegramAlert } from '../utils/telegramHelper';
+import {
+  sendTelegramAlert,
+  escTelegramHtml,
+  truncateTelegramMessage,
+  formatTelegramPhoneLinks,
+  formatTelegramMapsUrl,
+  TELEGRAM_SEPARATOR
+} from '../utils/telegramHelper';
 import {
   initialUsers,
   initialBarang,
@@ -937,8 +944,8 @@ export function AppProvider({ children }) {
       teknisi_id: assignedTeknisiId,
       jenis_kerja: taskData.jenis_kerja,
       lokasi: taskData.lokasi,
-      pelanggan_nama: taskData.pelanggan_nama || "Pelanggan Telkom",
-      pelanggan_telp: taskData.pelanggan_telp || "0812-xxxx-xxxx",
+      pelanggan_nama: taskData.pelanggan_nama || "Pelanggan Belum Terdata",
+      pelanggan_telp: taskData.pelanggan_telp || "",
       status: "menunggu",
       keterangan: taskData.keterangan || "",
       target_lat,
@@ -1008,7 +1015,7 @@ export function AppProvider({ children }) {
       lokasi: finalTask.lokasi,
       pelanggan_nama: finalTask.pelanggan_nama,
       pelanggan_telp: finalTask.pelanggan_telp,
-      odp_kode: taskData.odp_kode || 'ODP-PYK-FA/001',
+      odp_kode: taskData.odp_kode || null,
       odp_id: taskData.odp_id,
       keterangan: taskData.keterangan || ''
     }).catch(() => {});
@@ -1061,32 +1068,48 @@ export function AppProvider({ children }) {
 
     // 4. Siarkan Notifikasi ke Grup Telegram (Dual-Dispatch: Express API + Direct Telegram Bot API)
     try {
-      const odpKode = taskData.odp_kode || 'ODP-PYK-FA/001';
+      const matchedOdp = odp.find(o => Number(o.id) === Number(taskData.odp_id));
+      const odpKode = taskData.odp_kode || matchedOdp?.kode_odp || 'Titik ODP Belum Ditentukan';
       const assignedUser = users.find(u => Number(u.id) === assignedTeknisiId);
-      const penugasanText = assignedTeknisiId === 99 ? '📢 SIAGA TERBUKA (Siapapun Teknisi Dapat Mengambil Tiket)' : `👷 ${assignedUser?.nama_lengkap || 'Teknisi Lapangan'}`;
+      const isOpenPool = assignedTeknisiId === 99;
+      const cleanAddress = parseTaskDetails(finalTask).address || taskData.lokasi || 'Alamat belum terdata';
+      const mapsUrl = formatTelegramMapsUrl(target_lat, target_lng, cleanAddress);
+      const kontakHtml = formatTelegramPhoneLinks(finalTask.pelanggan_telp);
+      const portalUrl = `https://sto-telkom.vercel.app/tiket/${encodeURIComponent(String(finalTask.id))}`;
 
-      const teksTelegram = `🚨 <b>[TELKOM AKSES — FIBER OPS STO PAYAKUMBUH]</b>\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `⚡ <b>WORK ORDER / TIKET PEKERJAAN BARU</b>\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `📋 <b>No. Tiket:</b> #${finalTask.id}\n` +
-        `🔌 <b>Titik ODP:</b> <code>${odpKode}</code>\n` +
-        `📍 <b>Lokasi / Sektor:</b> ${finalTask.lokasi}\n` +
-        `💼 <b>Klasifikasi:</b> ${finalTask.jenis_kerja}\n` +
-        (finalTask.pelanggan_nama ? `👤 <b>Pelanggan:</b> ${finalTask.pelanggan_nama}\n` : '') +
-        (finalTask.pelanggan_telp ? `📞 <b>Kontak:</b> ${finalTask.pelanggan_telp}\n` : '') +
-        (finalTask.keterangan ? `📝 <b>Instruksi Operasional:</b> ${finalTask.keterangan}\n` : '') +
-        `📊 <b>Penugasan:</b> <code>${penugasanText}</code>\n` +
-        `⏱️ <b>Target SLA:</b> &lt; 3 Jam (Prioritas Utama)\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `👉 <a href="https://sto-telkom.vercel.app">Buka Telkom Akses Fiber Ops</a>`;
+      const headerLine = isOpenPool
+        ? `🚨 <b>[TELKOM AKSES STO PAYAKUMBUH — SPK BARU]</b>`
+        : `📌 <b>[TELKOM AKSES STO PAYAKUMBUH — PENUGASAN LANGSUNG]</b>`;
 
-      sendTelegramAlert(teksTelegram);
-    } catch {}
+      const statusLine = isOpenPool
+        ? `📊 <b>Status:</b> <code>OPEN POOL — Menunggu Klaim Teknisi</code>`
+        : `👷 <b>Teknisi Ditugaskan:</b> ${escTelegramHtml(assignedUser?.nama_lengkap || 'Teknisi Lapangan')}\n📊 <b>Status:</b> <code>ASSIGNED — Menunggu Pengerjaan</code>`;
+
+      const teksTelegram = truncateTelegramMessage([
+        headerLine,
+        TELEGRAM_SEPARATOR,
+        `📋 <b>Tiket:</b> #${escTelegramHtml(finalTask.id)} • <b>${escTelegramHtml(finalTask.jenis_kerja || 'Penugasan Lapangan')}</b>`,
+        `🔌 <b>ODP Target:</b> <code>${escTelegramHtml(odpKode)}</code>`,
+        `👤 <b>Pelanggan:</b> ${escTelegramHtml(finalTask.pelanggan_nama || 'Pelanggan Belum Terdata')}`,
+        `📞 <b>Kontak:</b> ${kontakHtml}`,
+        `📍 <b>Alamat:</b> ${escTelegramHtml(cleanAddress)}${mapsUrl ? ` (<a href="${escTelegramHtml(mapsUrl)}">Buka Maps</a>)` : ''}`,
+        finalTask.keterangan ? `📝 <b>Instruksi NOC:</b> ${escTelegramHtml(finalTask.keterangan)}` : null,
+        statusLine,
+        `⏱️ <b>Target SLA:</b> &lt; 3 Jam (Prioritas Operasional)`,
+        TELEGRAM_SEPARATOR,
+        `👉 <a href="${escTelegramHtml(portalUrl)}">Buka Detail Tiket di Portal</a>`
+      ].filter(Boolean).join('\n'));
+
+      sendTelegramAlert(teksTelegram).catch((tgErr) => {
+        console.error('[TelegramBot Error]:', tgErr.message);
+      });
+    } catch (tgErr) {
+      console.error('[TelegramBot Error]:', tgErr.message);
+    }
 
     showToast(`Tiket #${finalTask.id} (${taskData.jenis_kerja}) berhasil disiarkan ke aplikasi & Telegram!`, "success");
     return finalTask;
-  }, [tugas, currentUser, users, showToast, broadcastLiveSignal]);
+  }, [tugas, odp, currentUser, users, showToast, broadcastLiveSignal]);
 
   // SOP 1.5: Teknisi mengklaim/mengambil tiket yang diumumkan (Single Source of Truth via Express API)
   const claimTugas = useCallback(async (tugasId, teknisiId = null) => {
@@ -1161,20 +1184,38 @@ export function AppProvider({ children }) {
 
     // Notifikasi ke Grup Telegram (Dual-Dispatch)
     try {
-      const claimText = `👷 <b>[TIKET DIAMBIL TEKNISI LAPANGAN]</b>\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `🎫 <b>No. Tiket:</b> #${parsedTugasId} (${targetTask.jenis_kerja || 'Pekerjaan'})\n` +
-        `👷 <b>Teknisi Pelaksana:</b> ${techName}\n` +
-        `📍 <b>Lokasi:</b> ${targetTask.lokasi || '-'}\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `👉 <i>Teknisi sedang menyiapkan permohonan material dan menuju Gudang STO untuk pengambilan barang.</i>`;
+      const cust = parseTaskDetails(targetTask);
+      const matchedOdp = odp.find(o => Number(o.id) === Number(targetTask.odp_id));
+      const odpKode = targetTask.odp_kode || matchedOdp?.kode_odp || 'Titik ODP Belum Ditentukan';
+      const mapsUrl = formatTelegramMapsUrl(targetTask.target_lat, targetTask.target_lng, cust.address);
+      const kontakHtml = formatTelegramPhoneLinks(cust.telp || targetTask.pelanggan_telp);
+      const portalUrl = `https://sto-telkom.vercel.app/tiket/${encodeURIComponent(String(parsedTugasId))}`;
 
-      sendTelegramAlert(claimText);
-    } catch {}
+      const claimText = truncateTelegramMessage([
+        `👷 <b>[TELKOM AKSES STO PAYAKUMBUH — TIKET DIKLAIM]</b>`,
+        TELEGRAM_SEPARATOR,
+        `📋 <b>Tiket:</b> #${escTelegramHtml(parsedTugasId)} • <b>${escTelegramHtml(targetTask.jenis_kerja || 'Penugasan Lapangan')}</b>`,
+        `👷 <b>Teknisi:</b> <b>${escTelegramHtml(techName)}</b>`,
+        `🔌 <b>ODP Target:</b> <code>${escTelegramHtml(odpKode)}</code>`,
+        `👤 <b>Pelanggan:</b> ${escTelegramHtml(cust.name || 'Pelanggan Belum Terdata')}`,
+        `📞 <b>Kontak:</b> ${kontakHtml}`,
+        `📍 <b>Alamat:</b> ${escTelegramHtml(cust.address || 'Alamat belum terdata')}${mapsUrl ? ` (<a href="${escTelegramHtml(mapsUrl)}">Buka Maps</a>)` : ''}`,
+        `📊 <b>Status:</b> <code>PROGRESS (Diambil Teknisi)</code>`,
+        TELEGRAM_SEPARATOR,
+        `📌 <i>Langkah berikutnya: Ajukan material di portal jika membutuhkan perangkat/kabel gudang, atau langsung menuju lokasi.</i>`,
+        `👉 <a href="${escTelegramHtml(portalUrl)}">Buka Portal Tiket</a>`
+      ].join('\n'));
+
+      sendTelegramAlert(claimText).catch((tgErr) => {
+        console.error('[TelegramBot Error]:', tgErr.message);
+      });
+    } catch (tgErr) {
+      console.error('[TelegramBot Error]:', tgErr.message);
+    }
 
     showToast(`Tiket #${parsedTugasId} berhasil Anda ambil! Segera ajukan permohonan material ke gudang.`, 'success');
     return true;
-  }, [tugas, currentUser, showToast, broadcastLiveSignal]);
+  }, [tugas, odp, currentUser, showToast, broadcastLiveSignal]);
 
   // SOP 2: Teknisi mengajukan material ke gudang (Mendukung Multi-Tiket / Batch Kolektif)
   const requestMaterial = useCallback(async (param1, param2, param3, param4) => {
@@ -1344,24 +1385,57 @@ export function AppProvider({ children }) {
     // 4. Notifikasi Telegram ke Grup Gudang (Dual-Dispatch)
     try {
       const parentTask = tugas.find(t => Number(t.id) === parsedTugasId);
-      const itemListText = items.map(i => `• ${i.nama_barang || 'Barang ID: ' + i.barang_id}: ${i.jumlah_minta} ${i.satuan || 'pcs'}`).join('\n');
-      const textGudang = `📦 <b>[LOGISTIK GUDANG STO PAYAKUMBUH]</b>\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `📋 <b>PERMOHONAN MATERIAL DARI TEKNISI</b>\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `👷 <b>Teknisi:</b> ${currentUser?.nama_lengkap || 'Teknisi Lapangan'}\n` +
-        `🎫 <b>Untuk Tiket:</b> #${parsedTugasId} (${parentTask?.jenis_kerja || 'Pekerjaan'})\n` +
-        `📍 <b>Lokasi:</b> ${parentTask?.lokasi || '-'}\n` +
-        `📦 <b>Daftar Barang yang Diminta:</b>\n${itemListText}\n` +
-        (catatan ? `📝 <b>Catatan:</b> ${catatan}\n` : '') +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `👉 <i>Silakan buka aplikasi Gudang untuk merilis barang fisik ke teknisi.</i>`;
+      const cust = parseTaskDetails(parentTask);
+      const pemohonNama = currentUser?.nama_lengkap || 'Teknisi Lapangan';
+      const maxItems = 20;
+      const safeItems = (items || []).slice(0, maxItems);
+      const remainingItems = (items || []).length - safeItems.length;
 
-      sendTelegramAlert(textGudang);
-    } catch {}
+      let itemListText = safeItems.map(i => {
+        const matchedBarang = barang.find(b => Number(b.id) === Number(i.barang_id));
+        const itemNama = i.nama_barang || matchedBarang?.nama_barang || `Material #${i.barang_id}`;
+        const itemSatuan = i.satuan || matchedBarang?.satuan || 'pcs';
+        return `• <b>${escTelegramHtml(itemNama)}</b>: ${escTelegramHtml(i.jumlah_minta)} ${escTelegramHtml(itemSatuan)}`;
+      }).join('\n');
+
+      if (!itemListText) {
+        itemListText = '• <i>Rincian material belum terlampir</i>';
+      } else if (remainingItems > 0) {
+        itemListText += `\n<i>... dan ${remainingItems} item material lainnya</i>`;
+      }
+
+      const tiketSummary = validTugasIds.length > 1
+        ? `Batch ${validTugasIds.length} Tiket (${validTugasIds.slice(0, 15).map(id => `#${escTelegramHtml(id)}`).join(', ')}${validTugasIds.length > 15 ? ', ...' : ''})`
+        : `#${escTelegramHtml(parsedTugasId)} (${escTelegramHtml(parentTask?.jenis_kerja || 'Penugasan Lapangan')})`;
+
+      const portalUrl = `https://sto-telkom.vercel.app/tiket/${encodeURIComponent(String(parsedTugasId))}`;
+
+      const textGudang = truncateTelegramMessage([
+        `📦 <b>[TELKOM AKSES STO PAYAKUMBUH — PERMOHONAN MATERIAL]</b>`,
+        TELEGRAM_SEPARATOR,
+        `🔖 <b>No. Permohonan:</b> #${escTelegramHtml(realPId)}`,
+        `📋 <b>Tiket:</b> ${tiketSummary}`,
+        `👷 <b>Pemohon:</b> <b>${escTelegramHtml(pemohonNama)}</b>`,
+        `👤 <b>Pelanggan:</b> ${escTelegramHtml(cust.name || 'Pelanggan Belum Terdata')}`,
+        `📍 <b>Alamat:</b> ${escTelegramHtml(cust.address || 'Alamat belum terdata')}`,
+        TELEGRAM_SEPARATOR,
+        `📝 <b>Rincian Material:</b>`,
+        itemListText,
+        catatan ? `💬 <b>Catatan:</b> ${escTelegramHtml(catatan)}` : null,
+        `📊 <b>Status:</b> <code>MENUNGGU PERSETUJUAN PIMPINAN</code>`,
+        TELEGRAM_SEPARATOR,
+        `👉 <a href="${escTelegramHtml(portalUrl)}">Tinjau Permohonan di Portal</a>`
+      ].filter(Boolean).join('\n'));
+
+      sendTelegramAlert(textGudang).catch((tgErr) => {
+        console.error('[TelegramBot Error]:', tgErr.message);
+      });
+    } catch (tgErr) {
+      console.error('[TelegramBot Error]:', tgErr.message);
+    }
 
     showToast(`Permohonan material #${realPId} berhasil diajukan ke Gudang STO!`, "success");
-  }, [tugas, permohonan, detailPermohonan, currentUser, showToast, broadcastLiveSignal]);
+  }, [tugas, permohonan, detailPermohonan, barang, currentUser, showToast, broadcastLiveSignal]);
 
   // SOP 3: Pimpinan memberikan persetujuan (approval)
   const approveMaterial = useCallback(async (permohonanId) => {

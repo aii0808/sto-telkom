@@ -127,8 +127,8 @@ export default function DetailTiketTelegram() {
   };
 
   // Fase 3: Gudang Release & Binding SN ONT
-  const [snOnt, setSnOnt] = useState(task.sn_ont || 'ZTEGC8B90112');
-  const isOntBound = Boolean(task.sn_ont) || requestSent;
+  const [snOnt, setSnOnt] = useState(task?.sn_ont || '');
+  const isOntBound = Boolean(task?.sn_ont) || requestSent;
 
   // Fase 4: Check-In Lokasi
   const [checkInDone, setCheckInDone] = useState(Boolean(task.checkin?.verified));
@@ -297,10 +297,13 @@ export default function DetailTiketTelegram() {
       <header className={`sticky top-0 z-40 px-4 py-3 border-b backdrop-blur-md ${isDark ? 'bg-slate-950/80 border-slate-800' : 'bg-white/80 border-slate-200 shadow-sm'} flex items-center justify-between`}>
         <div className="flex items-center gap-2.5">
           <button
+            type="button"
             onClick={() => navigate('/dashboard-teknisi')}
+            aria-label="Kembali ke Dashboard"
+            title="Kembali"
             className={`p-2 rounded-xl ${isDark ? 'bg-slate-900 text-slate-400 hover:text-white' : 'bg-slate-100 text-slate-600 hover:text-slate-900'} transition cursor-pointer`}
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-4 h-4" aria-hidden="true" />
           </button>
           <div>
             <div className="flex items-center gap-1.5">
@@ -343,7 +346,7 @@ export default function DetailTiketTelegram() {
             </span>
           </div>
           <span className="text-[10px] uppercase font-mono font-bold px-2 py-0.5 rounded bg-blue-500/20 border border-blue-500/30">
-            Fase KP
+            Akses Terverifikasi Bot
           </span>
         </div>
 
@@ -353,16 +356,25 @@ export default function DetailTiketTelegram() {
             <div>
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Data Pelanggan IndiHome</span>
               <h2 className={`text-base font-extrabold ${isDark ? 'text-white' : 'text-slate-900'} mt-0.5`}>
-                {task.pelanggan_nama || 'Bpk. Rian Hidayat'}
+                {task.pelanggan_nama || 'Nama Pelanggan Belum Terdata'}
               </h2>
             </div>
-            <a
-              href={`tel:${task.pelanggan_telp || '081267890123'}`}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition shadow-md shadow-emerald-950"
-            >
-              <Phone className="w-3.5 h-3.5" />
-              <span>Hubungi</span>
-            </a>
+            {task.pelanggan_telp ? (
+              <a
+                href={`tel:${task.pelanggan_telp}`}
+                aria-label="Hubungi Pelanggan"
+                title="Hubungi Pelanggan"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition shadow-md shadow-emerald-950"
+              >
+                <Phone className="w-3.5 h-3.5" aria-hidden="true" />
+                <span>Hubungi</span>
+              </a>
+            ) : (
+              <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/60 text-slate-400 border border-slate-700/60 font-semibold text-xs">
+                <Phone className="w-3.5 h-3.5" aria-hidden="true" />
+                <span>-</span>
+              </span>
+            )}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
@@ -372,7 +384,7 @@ export default function DetailTiketTelegram() {
                 <span>Alamat Pemasangan:</span>
               </div>
               <div className="font-semibold">{task.lokasi}</div>
-              <div className="text-[11px] text-slate-400">Kontak: {task.pelanggan_telp || '081267890123'}</div>
+              <div className="text-[11px] text-slate-400">Kontak: {task.pelanggan_telp || '-'}</div>
             </div>
 
             <div className={`p-3 rounded-2xl border ${isDark ? 'bg-slate-950/60 border-slate-850' : 'bg-slate-50 border-slate-200'} space-y-1`}>
@@ -455,9 +467,10 @@ export default function DetailTiketTelegram() {
                         type="button"
                         onClick={() => handleRemoveMaterialItem(m.id)}
                         className="p-1 text-slate-500 hover:text-rose-400 rounded transition cursor-pointer"
+                        aria-label="Hapus item ini"
                         title="Hapus item ini"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
                       </button>
                     )}
                   </div>
@@ -558,7 +571,7 @@ export default function DetailTiketTelegram() {
           <div className={`p-3 rounded-2xl text-xs space-y-1.5 ${isDark ? 'bg-slate-950/70 border border-slate-850' : 'bg-slate-50 border border-slate-200'}`}>
             <div className="flex items-center justify-between">
               <span className="text-slate-400">Serial Number (SN Barcode) ONT:</span>
-              <span className="font-mono font-bold text-purple-400 text-sm">{snOnt}</span>
+              <span className="font-mono font-bold text-purple-400 text-sm">{snOnt || '-'}</span>
             </div>
             <div className="flex items-center justify-between text-[11px]">
               <span className="text-slate-400">Status Fisik Perangkat:</span>
@@ -631,8 +644,7 @@ export default function DetailTiketTelegram() {
               </span>
               <div>
                 <h3 className="font-extrabold text-sm flex items-center gap-1.5">
-                  <span>Fase 5: Closing Pekerjaan & WebGIS Magic</span>
-                  <span className="text-xs">🔥</span>
+                  <span>Fase 5: Closing Pekerjaan &amp; Pembaruan ODP</span>
                 </h3>
               </div>
             </div>
@@ -681,8 +693,8 @@ export default function DetailTiketTelegram() {
                 onClick={() => setShowClosingModal(true)}
                 className="w-full py-3 px-5 rounded-2xl bg-gradient-to-r from-rose-600 via-orange-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-extrabold text-xs transition shadow-xl shadow-rose-950 flex items-center justify-center gap-2 cursor-pointer active:scale-98"
               >
-                <Flame className="w-4 h-4" />
-                <span>TUTUP TIKET & PICU WEBGIS MAGIC SEKARANG 🔥</span>
+                <FileText className="w-4 h-4" aria-hidden="true" />
+                <span>Selesaikan Pekerjaan &amp; Terbitkan BASTP</span>
               </button>
             </div>
           )}
@@ -706,8 +718,11 @@ export default function DetailTiketTelegram() {
                 </div>
               </div>
               <button
+                type="button"
                 onClick={() => setShowClosingModal(false)}
-                className="text-slate-400 hover:text-white text-base cursor-pointer"
+                aria-label="Tutup jendela"
+                title="Tutup"
+                className="text-slate-400 hover:text-white text-base cursor-pointer p-1 rounded-lg"
               >
                 ✕
               </button>
@@ -743,6 +758,7 @@ export default function DetailTiketTelegram() {
                   type="text"
                   required
                   value={snOnt}
+                  placeholder="Masukkan Serial Number ONT (contoh: ZTEGC8B90112)"
                   onChange={(e) => setSnOnt(e.target.value)}
                   className={`w-full p-2.5 rounded-xl border ${isDark ? 'bg-slate-950 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'} font-mono uppercase font-bold focus:outline-none focus:border-rose-500`}
                 />
@@ -765,6 +781,7 @@ export default function DetailTiketTelegram() {
                         type="button"
                         onClick={() => setFotoOnt(null)}
                         className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-rose-600 text-white flex items-center justify-center text-xs shadow-md hover:bg-rose-700 cursor-pointer"
+                        aria-label="Hapus Foto"
                         title="Hapus Foto"
                       >
                         ✕

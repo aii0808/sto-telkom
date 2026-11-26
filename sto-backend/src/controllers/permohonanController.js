@@ -113,30 +113,48 @@ exports.createPermohonan = async (req, res) => {
 
   // Dispatch Notifikasi Pengajuan Barang Baru ke Telegram Group
   try {
-    let namaBarangStr = '';
+    let bItems = [];
     try {
-      const barangIds = barang.map(b => parseInt(b.barang_id, 10));
-      const { data: bItems } = await supabase.from('barang').select('id, nama_barang, satuan').in('id', barangIds);
-      if (bItems && bItems.length > 0) {
-        namaBarangStr = barang.map(b => {
-          const match = bItems.find(x => x.id === parseInt(b.barang_id, 10));
-          return `${match ? match.nama_barang : 'Barang #' + b.barang_id} (${b.jumlah_minta} ${match ? match.satuan : 'pcs'})`;
-        }).join(', ');
+      const barangIds = barang.map(b => parseInt(b.barang_id, 10)).filter(n => !isNaN(n));
+      if (barangIds.length > 0) {
+        const { data: fetchedItems } = await supabase.from('barang').select('id, nama_barang, satuan').in('id', barangIds);
+        if (Array.isArray(fetchedItems)) bItems = fetchedItems;
       }
-    } catch { /* fallback */ }
+    } catch { /* gunakan fallback ID item jika query barang gagal */ }
 
-    if (!namaBarangStr) {
-      namaBarangStr = barang.map(b => `${b.jumlah_minta}x [Item #${b.barang_id}]`).join(', ');
-    }
+    const enrichedItems = barang.map(b => {
+      const match = bItems.find(x => x.id === parseInt(b.barang_id, 10));
+      return {
+        barang_id: b.barang_id,
+        nama_barang: match ? match.nama_barang : (b.nama_barang || `Barang #${b.barang_id}`),
+        jumlah_minta: b.jumlah_minta,
+        satuan: match ? match.satuan : (b.satuan || 'pcs')
+      };
+    });
+
+    let tugasData = { id: targetTugasIds[0] };
+    try {
+      const { data: tRow } = await supabase.from('tugas').select('id, jenis_kerja, lokasi').eq('id', targetTugasIds[0]).single();
+      if (tRow) tugasData = tRow;
+    } catch { /* gunakan ID tugas minimal */ }
 
     const pemohonNama = req.body.teknisi_nama || req.body.nama || 'Teknisi Lapangan';
-    const tiketLabel = targetTugasIds.length > 1
-      ? `Batch ${targetTugasIds.length} Tiket (#${targetTugasIds.join(', #')})`
-      : `Tiket #${targetTugasIds[0]}`;
+    const tgMsg = telegramService.templatePermohonanMaterial({
+      tugas: tugasData,
+      permohonan: createdPermohonans[0],
+      permohonanIds: createdPermohonans.map(p => p.id),
+      tugasIds: targetTugasIds,
+      items: enrichedItems,
+      teknisiNama: pemohonNama,
+      catatan: req.body.catatan || ''
+    });
 
-    await telegramService.kirimKeGrup(`📦 <b>PENGAJUAN BARANG BARU (${tiketLabel})</b>\nBarang: ${telegramService.esc(namaBarangStr)}\nPemohon: ${telegramService.esc(pemohonNama)}`);
+    const tgResult = await telegramService.kirimKeGrup(tgMsg);
+    if (tgResult && tgResult.ok === false) {
+      console.error('[TelegramBot Error]:', tgResult.description || tgResult.error);
+    }
   } catch (tgErr) {
-    console.warn('[Telegram Permohonan Notice]', tgErr.message);
+    console.error('[TelegramBot Error]:', tgErr.message);
   }
 
   return successResponse(res, 201, `Permohonan untuk ${targetTugasIds.length} tiket berhasil diajukan`, {
@@ -287,6 +305,7 @@ exports.releasePermohonan = async (req, res) => {
   }
 
   // 2. Cek ketersediaan stok fisik seluruh item sebelum melakukan pemotongan
+  const releasedItemsMeta = [];
   for (const item of detail) {
     const qtyMinta = parseInt(item.jumlah_minta, 10);
     if (isNaN(qtyMinta) || qtyMinta <= 0) {
@@ -310,6 +329,13 @@ exports.releasePermohonan = async (req, res) => {
         `Stok gudang tidak mencukupi untuk ${barang.nama_barang} (Tersedia: ${barang.stok} ${barang.satuan}, Diminta: ${qtyMinta} ${barang.satuan})`
       );
     }
+
+    releasedItemsMeta.push({
+      barang_id: item.barang_id,
+      nama_barang: barang.nama_barang,
+      jumlah_minta: qtyMinta,
+      satuan: barang.satuan
+    });
   }
 
   // 3. Potong stok real di tabel barang secara berurutan
@@ -351,25 +377,32 @@ exports.releasePermohonan = async (req, res) => {
 
   // FASE 3: Dispatch Notifikasi Rilis Barang & Binding SN ONT (Status: In-Transit) ke Telegram
   try {
-    const snOnt = req.body.sn_ont || 'ZTEGC8B90112';
-    const petugasGudang = req.body.petugas_gudang || 'Siti Rahmawati';
+    const snOnt = (req.body.sn_ont && String(req.body.sn_ont).trim()) ? String(req.body.sn_ont).trim() : '-';
+    const petugasGudang = (req.body.petugas_gudang && String(req.body.petugas_gudang).trim())
+      ? String(req.body.petugas_gudang).trim()
+      : 'Petugas Gudang STO';
 
-    let tugasData = { id: permohonanUpdated?.tugas_id || 1, pelanggan_nama: 'Pelanggan Telkom' };
+    let tugasData = { id: permohonanUpdated?.tugas_id || existingPermohonan.tugas_id };
     if (permohonanUpdated?.tugas_id) {
       try {
         const { data: tData } = await supabase.from('tugas').select('*').eq('id', permohonanUpdated.tugas_id).single();
         if (tData) tugasData = tData;
-      } catch { /* fallback */ }
+      } catch { /* abaikan */ }
     }
 
     const tgMsg = telegramService.templateRilisBarang({
       tugas: tugasData,
+      permohonan: permohonanUpdated,
+      items: releasedItemsMeta,
       snOnt,
       petugasGudang
     });
-    telegramService.sendTelegramMessage(tgMsg);
+    const tgResult = await telegramService.sendTelegramMessage(tgMsg);
+    if (!tgResult.success && !tgResult.disabled) {
+      console.error('[TelegramBot Error]: Rilis barang broadcast gagal:', tgResult.details || tgResult.error);
+    }
   } catch (tgErr) {
-    console.warn('[Telegram Release Notice]', tgErr.message);
+    console.error('[TelegramBot Error]:', tgErr.message);
   }
 
   return successResponse(res, 200, 'Barang berhasil dirilis & stok gudang otomatis terpotong', permohonanUpdated, {

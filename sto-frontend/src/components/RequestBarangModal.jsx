@@ -178,8 +178,14 @@ function RequestBarangModal({ tugasId, onClose, onSuccess }) {
               </h2>
             </div>
           </div>
-          <button onClick={onClose} className="p-1 rounded-lg text-slate-400 hover:text-slate-200 cursor-pointer">
-            <X className="w-5 h-5" />
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Tutup jendela"
+            title="Tutup"
+            className="p-1 rounded-lg text-slate-400 hover:text-slate-200 cursor-pointer"
+          >
+            <X className="w-5 h-5" aria-hidden="true" />
           </button>
         </div>
 
@@ -347,9 +353,11 @@ function RequestBarangModal({ tugasId, onClose, onSuccess }) {
                   <button
                     type="button"
                     onClick={() => handleHapusItem(idx)}
+                    aria-label="Hapus item"
+                    title="Hapus item"
                     className="text-rose-500 hover:text-rose-400 p-1 cursor-pointer"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
                   </button>
                 </div>
               ))}

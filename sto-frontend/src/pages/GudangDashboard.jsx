@@ -6,7 +6,7 @@ import {
   Trash2,
   Search,
   TrendingDown,
-  Send,
+  PackageCheck,
   Boxes,
   ClipboardCheck,
   FileText,
@@ -548,7 +548,7 @@ export default function GudangDashboard() {
             <div className="p-3.5 sm:p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md animate-in fade-in">
               <div className="flex items-start sm:items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-500 border border-amber-500/30 flex items-center justify-center shrink-0">
-                  <Send className="w-5 h-5 animate-pulse" />
+                  <PackageCheck className="w-5 h-5 animate-pulse" aria-hidden="true" />
                 </div>
                 <div>
                   <div className="text-xs font-black text-amber-400">
@@ -565,7 +565,7 @@ export default function GudangDashboard() {
                 className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs shrink-0 cursor-pointer transition shadow active:scale-95 flex items-center justify-center gap-1.5 self-stretch sm:self-auto"
               >
                 <span>Proses Pengeluaran Material</span>
-                <Send className="w-3.5 h-3.5" />
+                <Truck className="w-3.5 h-3.5" aria-hidden="true" />
               </button>
             </div>
           )}
@@ -584,7 +584,7 @@ export default function GudangDashboard() {
                     <div className="text-2xl font-extrabold text-amber-500 mt-1">{pendingReleaseCount}</div>
                   </div>
                   <div className="w-10 h-10 rounded-xl bg-amber-600/20 text-amber-500 border border-amber-500/30 flex items-center justify-center">
-                    <Send className="w-5 h-5" />
+                    <PackageCheck className="w-5 h-5" aria-hidden="true" />
                   </div>
                 </div>
 
@@ -843,7 +843,7 @@ export default function GudangDashboard() {
                 >
                   <div className="flex items-center justify-between mb-2">
                     <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center">
-                      <Send className="w-4 h-4" />
+                      <PackageCheck className="w-4 h-4" aria-hidden="true" />
                     </div>
                     {pendingReleaseCount > 0 && (
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 animate-pulse">

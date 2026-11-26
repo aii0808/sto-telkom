@@ -130,9 +130,18 @@ exports.createTugas = async (req, res) => {
     const baseUrl = (process.env.APP_FRONTEND_URL || 'https://sto-telkom.vercel.app').replace(/\/+$/, '');
     magicUrl = `${baseUrl}/tiket/${data.id}`;
 
-    const odp = odp_kode || (parsedOdpId ? `ODP-ID-${parsedOdpId}` : 'ODP-PYK-01/04');
-    const lokasiText = data.lokasi || fullLokasi;
-    const jenis = data.jenis_kerja || jenis_kerja;
+    let odp = odp_kode || null;
+    if (!odp && parsedOdpId && !isNaN(parsedOdpId)) {
+      try {
+        const { data: odpRow } = await supabase
+          .from('odp')
+          .select('kode_odp')
+          .eq('id', parsedOdpId)
+          .single();
+        if (odpRow?.kode_odp) odp = odpRow.kode_odp;
+      } catch { /* abaikan lookup jika odp_id tidak ditemukan */ }
+    }
+    odp = odp || 'Titik ODP Belum Ditentukan';
 
     // Ambil nama teknisi jika dipilih langsung oleh pimpinan
     let techName = null;
@@ -147,81 +156,52 @@ exports.createTugas = async (req, res) => {
       } catch { /* ignore */ }
     }
 
-    let pesanTiket = '';
-    let inlineKeyboard = null;
+    const pesanTiket = telegramService.templateTiketBaru({
+      tugas: {
+        ...data,
+        lokasi,
+        pelanggan_nama: pelanggan_nama || null,
+        pelanggan_telp: pelanggan_telp || null,
+        keterangan: note || null,
+        odp_kode: odp
+      },
+      baseUrl,
+      magicUrl,
+      mode: parsedTeknisiId ? 'assigned' : 'open',
+      teknisiNama: techName
+    });
 
-    if (!parsedTeknisiId) {
-      // 1. ALUR REAL OPEN POOL: Tiket terbuka untuk siapapun teknisi dalam grup Telegram
-      pesanTiket = [
-        `🚨 <b>[TELKOM AKSES — NOC DISPATCH STO PAYAKUMBUH]</b>`,
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
-        `⚡ <b>WORK ORDER / TIKET GANGGUAN BARU</b>`,
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
-        `📋 <b>No. Tiket:</b> #${data.id}`,
-        `🔌 <b>Titik ODP:</b> <code>${telegramService.esc(odp)}</code>`,
-        `📍 <b>Lokasi / Sektor:</b> ${telegramService.esc(lokasiText)}`,
-        `💼 <b>Klasifikasi Pekerjaan:</b> ${telegramService.esc(jenis)}`,
-        pelanggan_nama ? `👤 <b>Pelanggan:</b> ${telegramService.esc(pelanggan_nama)}` : null,
-        pelanggan_telp ? `📞 <b>Kontak:</b> ${telegramService.esc(pelanggan_telp)}` : null,
-        note ? `📝 <b>Instruksi NOC:</b> ${telegramService.esc(note)}` : null,
-        `⏱️ <b>Target SLA:</b> &lt; 3 Jam (Prioritas Utama)`,
-        `📊 <b>Status Dispatch:</b> 📢 <code>OPEN POOL (Menunggu Klaim Teknisi)</code>`,
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
-        `⚡ <i>Siapapun teknisi siaga di grup silakan klik tombol di bawah untuk mengklaim tiket ini:</i>`,
-        `👉 <a href="${magicUrl}">Buka Detail Tiket Web</a>`
-      ].filter(Boolean).join('\n');
-
-      inlineKeyboard = {
-        inline_keyboard: [
-          [
-            { text: '🔘 AMBIL TIKET SEKARANG', callback_data: `claim_${data.id}` }
-          ],
-          [
-            { text: '🌐 BUKA DETAIL TIKET', url: magicUrl }
+    const inlineKeyboard = !parsedTeknisiId
+      ? telegramService.buildInlineKeyboardTiket({ tugas: data, magicUrl })
+      : {
+          inline_keyboard: [
+            [
+              { text: '🔍 BUKA DETAIL TIKET', url: magicUrl }
+            ]
           ]
-        ]
-      };
-    } else {
-      // 2. ALUR PENUGASAN LANGSUNG: Pimpinan menunjuk teknisi spesifik
-      pesanTiket = [
-        `📌 <b>[TELKOM AKSES — PENUGASAN TIKET PEKERJAAN]</b>`,
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
-        `📋 <b>No. Tiket:</b> #${data.id}`,
-        `🔌 <b>Titik ODP:</b> <code>${telegramService.esc(odp)}</code>`,
-        `📍 <b>Lokasi:</b> ${telegramService.esc(lokasiText)}`,
-        `💼 <b>Klasifikasi Pekerjaan:</b> ${telegramService.esc(jenis)}`,
-        pelanggan_nama ? `👤 <b>Pelanggan:</b> ${telegramService.esc(pelanggan_nama)}` : null,
-        `👷 <b>Teknisi Ditugaskan:</b> ${telegramService.esc(techName || 'Teknisi Lapangan')}`,
-        `📊 <b>Status Dispatch:</b> <code>ASSIGNED (Menunggu Pengerjaan)</code>`,
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
-        `👉 <a href="${magicUrl}">Buka Detail Tiket</a>`
-      ].filter(Boolean).join('\n');
-
-      inlineKeyboard = {
-        inline_keyboard: [
-          [
-            { text: '🔍 BUKA DETAIL TIKET', url: magicUrl }
-          ]
-        ]
-      };
-    }
+        };
 
     // FASE DUAL BROADCAST: Siarkan ke Telegram secara asinkron (non-blocking) agar response API super cepat (<200ms)
     telegramService.kirimKeGrup(pesanTiket, {
       reply_markup: inlineKeyboard
     }).then(async (tgResult) => {
+      if (tgResult && tgResult.ok === false) {
+        console.error('[TelegramBot Error]:', tgResult.description || tgResult.error);
+      }
       if (tgResult && tgResult.result?.message_id) {
         try {
           await supabase.from('tugas').update({
             telegram_message_id: String(tgResult.result.message_id)
           }).eq('id', data.id);
-        } catch { /* fallback */ }
+        } catch (dbUpdErr) {
+          console.error('[TelegramBot Error]: Gagal simpan telegram_message_id:', dbUpdErr.message);
+        }
       }
     }).catch((tgErr) => {
-      console.warn('[Telegram Dispatch Notice]', tgErr.message);
+      console.error('[TelegramBot Error]:', tgErr.message);
     });
   } catch (tgErr) {
-    console.warn('[Telegram Dual Broadcast Notice]', tgErr.message);
+    console.error('[TelegramBot Error]:', tgErr.message);
   }
 
   return successResponse(res, 201, 'Tugas berhasil diterbitkan & disiarkan ke Telegram!', {
@@ -389,7 +369,7 @@ exports.claimTugas = async (req, res) => {
     return errorResponse(res, 409, 'Tiket gagal diklaim karena baru saja diambil oleh teknisi lain (Race condition dicegah)');
   }
 
-  // Dual Broadcast update klaim ke Telegram Grup & instruksikan teknisi ke Gudang STO
+  // Dual Broadcast update klaim ke Telegram Grup & instruksikan teknisi
   try {
     let techName = 'Teknisi Lapangan';
     const { data: uData } = await supabase
@@ -399,45 +379,44 @@ exports.claimTugas = async (req, res) => {
       .single();
     if (uData && uData.nama_lengkap) techName = uData.nama_lengkap;
 
+    let odpKode = existingTugas.odp_kode || null;
+    if (!odpKode && existingTugas.odp_id) {
+      try {
+        const { data: odpRow } = await supabase.from('odp').select('kode_odp').eq('id', existingTugas.odp_id).single();
+        if (odpRow?.kode_odp) odpKode = odpRow.kode_odp;
+      } catch { /* abaikan */ }
+    }
+
     const baseUrl = (process.env.APP_FRONTEND_URL || 'https://sto-telkom.vercel.app').replace(/\/+$/, '');
     const magicLink = `${baseUrl}/tiket/${parsedId}`;
-    const odpKode = existingTugas.odp_kode || 'ODP-PYK-FA/001';
-    const lokasiText = existingTugas.lokasi || 'Payakumbuh';
-    const jenisText = existingTugas.jenis_kerja || 'Perbaikan Lapangan';
+    const broadcastClaim = telegramService.templateKlaimTiket({
+      tugas: {
+        ...existingTugas,
+        id: parsedId,
+        odp_kode: odpKode || 'Titik ODP Belum Ditentukan'
+      },
+      teknisiNama: techName,
+      magicLink,
+      baseUrl
+    });
 
-    const broadcastClaim = `
-📢 <b>[TELKOM AKSES — DISPATCH NOC STO PAYAKUMBUH]</b>
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-⚡ <b>UPDATE DISPATCH: TIKET TELAH DIKLAIM TEKNISI</b>
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📋 <b>No. Tiket:</b> #${parsedId}
-👷 <b>Teknisi Lapangan:</b> <b>${telegramService.esc(techName)}</b>
-🔌 <b>Titik ODP:</b> <code>${telegramService.esc(odpKode)}</code>
-📍 <b>Lokasi / Sektor:</b> ${telegramService.esc(lokasiText)}
-💼 <b>Pekerjaan:</b> ${telegramService.esc(jenisText)}
-📊 <b>Status Dispatch:</b> <code>IN-PROGRESS (Sedang Dikerjakan)</code>
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📦 <b>SOP TAHAP 2 — LOGISTIK MATERIAL GUDANG:</b>
-Kepada rekan teknisi <b>${telegramService.esc(techName)}</b>, silakan segera menuju ke <b>Gudang STO Telkom Payakumbuh</b> untuk serah terima & pengambilan material kerja (Kabel Dropcore, Modem ONT, Roset Optik, & Aksesoris).
-
-👉 <i>Buka tautan di bawah untuk konfirmasi permintaan material ke gudang:</i>
-<a href="${magicLink}">${magicLink}</a>
-    `.trim();
-
-    await telegramService.kirimKeGrup(broadcastClaim, {
+    const tgResult = await telegramService.kirimKeGrup(broadcastClaim, {
       reply_markup: {
         inline_keyboard: [
           [
             {
-              text: '📦 AMBIL MATERIAL DI GUDANG',
+              text: '📦 AJUKAN MATERIAL / BUKA TIKET',
               url: magicLink
             }
           ]
         ]
       }
     });
+    if (tgResult && tgResult.ok === false) {
+      console.error('[TelegramBot Error]:', tgResult.description || tgResult.error);
+    }
   } catch (tgClaimErr) {
-    console.warn('[claimTugas] Telegram broadcast notice:', tgClaimErr.message);
+    console.error('[TelegramBot Error]:', tgClaimErr.message);
   }
 
   return successResponse(res, 200, 'Tugas berhasil diambil oleh teknisi', data, { tugas: data });
@@ -561,9 +540,11 @@ exports.checkInTugas = async (req, res) => {
   }
 
   const waktuWib = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
+  const parsedLat = (latitude !== undefined && latitude !== null && latitude !== '' && Number.isFinite(Number(latitude))) ? Number(latitude) : null;
+  const parsedLng = (longitude !== undefined && longitude !== null && longitude !== '' && Number.isFinite(Number(longitude))) ? Number(longitude) : null;
 
   // Ambil detail tugas untuk data notifikasi & validasi status
-  let tugasData = { id: parsedId, pelanggan_nama: 'Pelanggan Telkom' };
+  let tugasData = { id: parsedId };
   try {
     const { data: tData } = await supabase.from('tugas').select('*').eq('id', parsedId).single();
     if (tData) {
@@ -573,8 +554,8 @@ exports.checkInTugas = async (req, res) => {
         return errorResponse(res, 400, 'Tiket sudah selesai dikerjakan (Done) dan tidak dapat melakukan check-in ulang');
       }
     }
-  } catch {
-    // fallback
+  } catch (errLookup) {
+    console.error('[TelegramBot Error]: Lookup tugas checkIn:', errLookup.message);
   }
 
   // Simpan status In-Progress ke Supabase
@@ -586,26 +567,33 @@ exports.checkInTugas = async (req, res) => {
     // Ignore fallback
   }
 
-  const msg = telegramService.templateCheckIn({
-    tugas: tugasData,
-    teknisiNama: teknisi_nama || 'Teknisi Lapangan',
-    latitude: latitude || -0.2289,
-    longitude: longitude || 100.6322,
-    waktuWib
-  });
-
-  const tgResult = await telegramService.sendTelegramMessage(msg);
+  let tgResult = { success: false };
+  try {
+    const msg = telegramService.templateCheckIn({
+      tugas: tugasData,
+      teknisiNama: teknisi_nama || 'Teknisi Lapangan',
+      latitude: parsedLat,
+      longitude: parsedLng,
+      waktuWib
+    });
+    tgResult = await telegramService.sendTelegramMessage(msg);
+    if (!tgResult.success && !tgResult.disabled) {
+      console.error('[TelegramBot Error]: Check-in broadcast gagal:', tgResult.details || tgResult.error);
+    }
+  } catch (tgErr) {
+    console.error('[TelegramBot Error]:', tgErr.message);
+  }
 
   return successResponse(res, 200, 'Teknisi berhasil check-in di lokasi pelanggan', {
     tugas_id: parsedId,
-    latitude,
-    longitude,
+    latitude: parsedLat,
+    longitude: parsedLng,
     waktu: waktuWib,
     telegram: tgResult
   });
 };
 
-// 11. FASE 5: Closing Pekerjaan & WebGIS Magic (Transaksi Database Berantai 🔥)
+// 11. FASE 5: Closing Pekerjaan & Pembaruan ODP WebGIS (Transaksi Database Berantai)
 exports.closeTugas = async (req, res) => {
   const { id } = req.params;
   const {
@@ -623,11 +611,23 @@ exports.closeTugas = async (req, res) => {
     return errorResponse(res, 400, 'ID tugas tidak valid');
   }
 
-  const redaman = parseFloat(redaman_dbm) || -18.50;
-  const sn = sn_ont || 'ZTEGC8B90112';
+  const hasValidRedaman =
+    redaman_dbm !== undefined &&
+    redaman_dbm !== null &&
+    redaman_dbm !== '' &&
+    !Number.isNaN(parseFloat(redaman_dbm));
+  const redaman = hasValidRedaman ? parseFloat(redaman_dbm) : null;
+  const sn = (sn_ont && String(sn_ont).trim()) ? String(sn_ont).trim() : '-';
   const bastpNo = `BASTP/TA-PYK/2026/${String(parsedId).padStart(4, '0')}`;
 
-  // 1. Ubah status tugas menjadi Closed (dan Done)
+  // Ambil metadata asli tugas dari Supabase
+  let existingTugas = null;
+  try {
+    const { data: tData } = await supabase.from('tugas').select('*').eq('id', parsedId).single();
+    if (tData) existingTugas = tData;
+  } catch { /* ignore */ }
+
+  // 1. Ubah status tugas menjadi Closed
   try {
     await supabase.from('tugas').update({
       status: 'Closed',
@@ -637,33 +637,45 @@ exports.closeTugas = async (req, res) => {
     console.warn('[closeTugas] Supabase update status notice:', err.message);
   }
 
-  // 2. Eksekusi WebGIS Magic: Naikkan 1 port terpakai di ODP & evaluasi status warna (Kuning/Merah)
-  const targetOdpId = odp_id || odp_kode || 1;
-  const updatedOdp = await odpController.incrementPortOdpInternal(targetOdpId);
+  // 2. Eksekusi Pembaruan ODP WebGIS jika target ODP tersedia
+  const targetOdpId = odp_id || odp_kode || existingTugas?.odp_id || null;
+  const updatedOdp = targetOdpId
+    ? await odpController.incrementPortOdpInternal(targetOdpId)
+    : null;
 
   // 3. Dispatch notifikasi ringkasan BASTP digital ke Grup Pimpinan di Telegram
-  const tgMsg = telegramService.templateClosingBastp({
-    tugas: {
-      id: parsedId,
-      pelanggan_nama: pelanggan_nama || 'Pelanggan IndiHome',
-      odp_kode: updatedOdp.kode_odp || odp_kode || 'ODP-PYK-FA/001'
-    },
-    odp: updatedOdp,
-    redamanDbm: redaman,
-    snOnt: sn,
-    bastpNo,
-    portBaru: updatedOdp.port_terpakai,
-    kapasitasPort: updatedOdp.kapasitas_port,
-    statusOdp: updatedOdp.status
-  });
+  let tgResult = { success: false };
+  try {
+    const tgMsg = telegramService.templateClosingBastp({
+      tugas: {
+        ...(existingTugas || {}),
+        id: parsedId,
+        pelanggan_nama: pelanggan_nama || existingTugas?.pelanggan_nama || null,
+        odp_kode: updatedOdp?.kode_odp || odp_kode || 'Titik ODP Belum Ditentukan'
+      },
+      odp: updatedOdp,
+      redamanDbm: redaman,
+      snOnt: sn,
+      bastpNo,
+      portBaru: updatedOdp?.port_terpakai ?? null,
+      kapasitasPort: updatedOdp?.kapasitas_port ?? null,
+      statusOdp: updatedOdp?.status ?? null,
+      tandaTanganPelanggan: Boolean(tanda_tangan_pelanggan)
+    });
 
-  const tgResult = await telegramService.sendTelegramMessage(tgMsg);
+    tgResult = await telegramService.sendTelegramMessage(tgMsg);
+    if (!tgResult.success && !tgResult.disabled) {
+      console.error('[TelegramBot Error]: Closing BASTP broadcast gagal:', tgResult.details || tgResult.error);
+    }
+  } catch (tgErr) {
+    console.error('[TelegramBot Error]:', tgErr.message);
+  }
 
   return successResponse(res, 200, 'Tiket berhasil di-close, status ONT Active, dan WebGIS ODP ter-update otomatis!', {
     tugas_id: parsedId,
     status: 'Closed',
     sn_ont: sn,
-    sn_status: 'Active',
+    sn_status: sn !== '-' ? 'Active' : null,
     redaman_dbm: redaman,
     tanda_tangan_pelanggan: Boolean(tanda_tangan_pelanggan),
     bastp_no: bastpNo,

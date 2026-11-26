@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Search,
   Radio,
@@ -19,6 +19,12 @@ export default function WebGISTracking({ initialSelectedTaskId = null, onEditOdp
 
   const [selectedOdpId, setSelectedOdpId] = useState(null);
   const [selectedTugasId, setSelectedTugasId] = useState(initialSelectedTaskId);
+
+  useEffect(() => {
+    if (initialSelectedTaskId != null) {
+      setSelectedTugasId(initialSelectedTaskId);
+    }
+  }, [initialSelectedTaskId]);
   const [odpToEdit, setOdpToEdit] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');

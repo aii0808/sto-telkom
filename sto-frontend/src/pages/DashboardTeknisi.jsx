@@ -610,20 +610,24 @@ export default function DashboardTeknisi() {
                                     href={`https://www.google.com/maps/dir/?api=1&destination=${mapsQuery}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="p-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 transition cursor-pointer flex items-center justify-center"
+                                    className="px-2 py-1 sm:p-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 transition cursor-pointer flex items-center justify-center gap-1"
+                                    aria-label="Buka Rute Google Maps"
                                     title="Navigasi Rute Google Maps"
                                   >
-                                    <Navigation className="w-3.5 h-3.5" />
+                                    <Navigation className="w-3.5 h-3.5" aria-hidden="true" />
+                                    <span className="text-[10px] font-bold sm:hidden">Rute</span>
                                   </a>
 
                                   {/* Tombol Icon Telepon (Dialer HP) */}
                                   {cleanPhone && (
                                     <a
                                       href={`tel:${cleanPhone}`}
-                                      className="p-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 transition cursor-pointer flex items-center justify-center"
+                                      className="px-2 py-1 sm:p-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 transition cursor-pointer flex items-center justify-center gap-1"
+                                      aria-label="Panggil Nomor Pelanggan"
                                       title="Hubungi Nomor Telepon Langsung"
                                     >
-                                      <PhoneCall className="w-3.5 h-3.5" />
+                                      <PhoneCall className="w-3.5 h-3.5" aria-hidden="true" />
+                                      <span className="text-[10px] font-bold sm:hidden">Telp</span>
                                     </a>
                                   )}
 
@@ -633,10 +637,12 @@ export default function DashboardTeknisi() {
                                       href={`https://wa.me/${waNumber}`}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="p-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 transition cursor-pointer flex items-center justify-center"
+                                      className="px-2 py-1 sm:p-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 transition cursor-pointer flex items-center justify-center gap-1"
+                                      aria-label="Kirim Pesan WhatsApp"
                                       title="Chat WhatsApp (Nomor Seluler)"
                                     >
-                                      <MessageSquare className="w-3.5 h-3.5" />
+                                      <MessageSquare className="w-3.5 h-3.5" aria-hidden="true" />
+                                      <span className="text-[10px] font-bold sm:hidden">WA</span>
                                     </a>
                                   )}
                                 </div>
@@ -895,20 +901,24 @@ export default function DashboardTeknisi() {
                                     href={`https://www.google.com/maps/dir/?api=1&destination=${mapsQuery}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="p-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 transition cursor-pointer flex items-center justify-center"
+                                    className="px-2 py-1 sm:p-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 transition cursor-pointer flex items-center justify-center gap-1"
+                                    aria-label="Buka Rute Google Maps"
                                     title="Navigasi Rute Google Maps"
                                   >
-                                    <Navigation className="w-3.5 h-3.5" />
+                                    <Navigation className="w-3.5 h-3.5" aria-hidden="true" />
+                                    <span className="text-[10px] font-bold sm:hidden">Rute</span>
                                   </a>
 
                                   {/* Tombol Icon Telepon (Dialer HP) */}
                                   {cleanPhone && (
                                     <a
                                       href={`tel:${cleanPhone}`}
-                                      className="p-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 transition cursor-pointer flex items-center justify-center"
+                                      className="px-2 py-1 sm:p-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 transition cursor-pointer flex items-center justify-center gap-1"
+                                      aria-label="Panggil Nomor Pelanggan"
                                       title="Hubungi Nomor Telepon Langsung"
                                     >
-                                      <PhoneCall className="w-3.5 h-3.5" />
+                                      <PhoneCall className="w-3.5 h-3.5" aria-hidden="true" />
+                                      <span className="text-[10px] font-bold sm:hidden">Telp</span>
                                     </a>
                                   )}
 
@@ -918,10 +928,12 @@ export default function DashboardTeknisi() {
                                       href={`https://wa.me/${waNumber}`}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="p-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 transition cursor-pointer flex items-center justify-center"
+                                      className="px-2 py-1 sm:p-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 transition cursor-pointer flex items-center justify-center gap-1"
+                                      aria-label="Kirim Pesan WhatsApp"
                                       title="Chat WhatsApp (Nomor Seluler)"
                                     >
-                                      <MessageSquare className="w-3.5 h-3.5" />
+                                      <MessageSquare className="w-3.5 h-3.5" aria-hidden="true" />
+                                      <span className="text-[10px] font-bold sm:hidden">WA</span>
                                     </a>
                                   )}
                                 </div>
